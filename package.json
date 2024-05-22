@@ -1,0 +1,40 @@
+{
+  "name": "smart-handles-agent",
+  "version": "0.1.0",
+  "description": "Monitoring CLI application for routing requests submitted to smart handles script on Cardano",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsup src/index.ts",
+    "quick-test": "tsup src/index.ts && node dist/index.js echo \"hello world\"",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Anastasia-Labs/smart-handles-agent.git"
+  },
+  "keywords": [
+    "cardano",
+    "smart",
+    "handles",
+    "beacons",
+    "router"
+  ],
+  "author": "Anastasia Labs",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Anastasia-Labs/smart-handles-agent/issues"
+  },
+  "bin": {
+    "smart-handles-agent": "./dist/index.js"
+  },
+  "homepage": "https://github.com/Anastasia-Labs/smart-handles-agent#readme",
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "tsup": "^8.0.2",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "kleur": "^4.1.5"
+  }
+}
