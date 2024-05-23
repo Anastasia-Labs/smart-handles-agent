@@ -8,6 +8,7 @@
     "quick-test": "tsup src/index.ts && node dist/index.js monitor",
     "test": "test"
   },
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Anastasia-Labs/smart-handles-agent.git"
@@ -29,6 +30,7 @@
   },
   "homepage": "https://github.com/Anastasia-Labs/smart-handles-agent#readme",
   "devDependencies": {
+    "@swc/core": "^1.5.7",
     "@types/node": "^20.12.12",
     "tsup": "^8.0.2",
     "typescript": "^5.4.5"

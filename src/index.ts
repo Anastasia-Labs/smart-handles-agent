@@ -1,4 +1,5 @@
-// @ts-ignore
+#!/bin/env node
+
 import * as packageJson from "../package.json";
 import { Command } from "@commander-js/extra-typings";
 import * as kleur from "kleur";
