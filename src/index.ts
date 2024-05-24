@@ -2,28 +2,15 @@
 
 import * as packageJson from "../package.json";
 import { Command } from "@commander-js/extra-typings";
-import * as chalk_ from "chalk";
 import {
   Blockfrost,
   Lucid,
   fetchBatchRequestUTxOs,
   fetchSingleRequestUTxOs,
+  getBatchVAs,
+  getSingleValidatorVA,
 } from "@anastasia-labs/smart-handles-offchain";
-
-const chalk = new chalk_.Chalk();
-
-// UTILS
-// {{{
-type Target = "Single" | "Batch" | "Both";
-
-const logAbort = (msg: string) => {
-  console.log(`${chalk.red(chalk.bold("ABORT:"))} ${chalk.red(msg)}`);
-};
-const logNoneFound = (variant: string) => {
-  const msg = `No ${variant} requests found`;
-  console.log(chalk.bold(chalk.dim(msg)));
-};
-// }}}
+import { chalk, Target, matchTarget, logAbort, logNoneFound, logWarning } from "./utils";
 
 const program: Command = new Command();
 
@@ -64,11 +51,7 @@ Make sure you've first set these 2 environment variables:
     (x: string, def: number): number => {
       const parsed = parseInt(x);
       if (isNaN(parsed)) {
-        console.log(
-          chalk.yellow(
-            `WARNING: Bad polling interval, reverting to default (${def}ms)`
-          )
-        );
+        logWarning(`Bad polling interval, reverting to default (${def}ms)`);
         return def;
       } else {
         return parsed;
@@ -105,47 +88,83 @@ Make sure you've first set these 2 environment variables:
       logAbort("No wallet seed phrase found (SEED_PHRASE)");
       return 1;
     }
-    const lucid = await Lucid.new(
-      new Blockfrost(
-        `https://cardano-${
-          testnet ? "preprod" : "mainnet"
-        }.blockfrost.io/api/v0`,
-        blockfrostKey
-      ),
-      testnet ? "Preprod" : "Mainnet"
-    );
-    lucid.selectWalletFromSeed(seedPhrase);
-
-    // ------- POLLING --------------------------------------------------------
-    setInterval(async () => {
-      const now = new Date();
-      console.log(
-        `${chalk.bgGray(now.toLocaleTimeString())}\u0009 fetching\u2026`
+    try {
+      const lucid = await Lucid.new(
+        new Blockfrost(
+          `https://cardano-${
+            testnet ? "preprod" : "mainnet"
+          }.blockfrost.io/api/v0`,
+          blockfrostKey
+        ),
+        testnet ? "Preprod" : "Mainnet"
       );
-      if (target == "Single") {
-        const singleUTxOs = await fetchSingleRequestUTxOs(lucid, testnet);
-        if (singleUTxOs.length > 0) {
-          throw new Error("TODO");
-        } else {
-          logNoneFound("single");
+      lucid.selectWalletFromSeed(seedPhrase);
+
+      // ------- POLLING --------------------------------------------------------
+      const singleVARes = getSingleValidatorVA(lucid, testnet);
+      const batchVAsRes = getBatchVAs(lucid, testnet);
+      const singleAddr =
+        singleVARes.type === "error" ? "" : singleVARes.data.address;
+      const batchAddr =
+        batchVAsRes.type === "error" ? "" : batchVAsRes.data.spendVA.address;
+      console.log("Querying:");
+      matchTarget(
+        target,
+        () => console.log(chalk.whiteBright(singleAddr)),
+        () => console.log(chalk.whiteBright(batchAddr)),
+        () => {
+          console.log(chalk.whiteBright(singleAddr));
+          console.log("&");
+          console.log(chalk.whiteBright(batchAddr));
         }
-      } else if (target == "Batch") {
-        const batchUTxOs = await fetchBatchRequestUTxOs(lucid, testnet);
-        if (batchUTxOs.length > 0) {
-          throw new Error("TODO");
-        } else {
-          logNoneFound("batch");
-        }
-      } else {
-        const singleUTxOs = await fetchSingleRequestUTxOs(lucid, testnet);
-        const batchUTxOs = await fetchBatchRequestUTxOs(lucid, testnet);
-        if (singleUTxOs.length > 0 || batchUTxOs.length > 0) {
-          throw new Error("TODO");
-        } else {
-          logNoneFound("single or batch");
-        }
-      }
-    }, pollingInterval);
+      );
+      console.log("");
+      setInterval(async () => {
+        matchTarget(
+          target,
+          async () => {
+            try {
+              const singleUTxOs = await fetchSingleRequestUTxOs(lucid, testnet);
+              if (singleUTxOs.length > 0) {
+                throw new Error("TODO: ROUTE SINGLE");
+              } else {
+                logNoneFound("single");
+              }
+            } catch(e) {
+              logWarning(e.toString());
+            }
+          },
+          async () => {
+            try {
+              const batchUTxOs = await fetchBatchRequestUTxOs(lucid, testnet);
+              if (batchUTxOs.length > 0) {
+                throw new Error("TODO: ROUTE BATCH");
+              } else {
+                logNoneFound("batch");
+              }
+            } catch(e) {
+              logWarning(e.toString());
+            }
+          },
+          async () => {
+            try {
+              const singleUTxOs = await fetchSingleRequestUTxOs(lucid, testnet);
+              const batchUTxOs = await fetchBatchRequestUTxOs(lucid, testnet);
+              if (singleUTxOs.length > 0 || batchUTxOs.length > 0) {
+                throw new Error("TODO: ROUTE SINGLE & BATCH");
+              } else {
+                logNoneFound("single or batch");
+              }
+            } catch(e) {
+              logWarning(e.toString());
+            }
+          }
+        );
+      }, pollingInterval);
+    } catch (e) {
+      logAbort(e.toString());
+      return 1;
+    }
   });
 
 program.parse();
