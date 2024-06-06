@@ -20,6 +20,9 @@ importers:
       commander:
         specifier: ^12.1.0
         version: 12.1.0
+      effect:
+        specifier: ^3.2.5
+        version: 3.2.5
     devDependencies:
       '@swc/core':
         specifier: ^1.5.7
@@ -591,6 +594,9 @@ packages:
 
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
+
+  effect@3.2.5:
+    resolution: {integrity: sha512-Qs/NAX2s/ClRATbiImc4IuzzAs+1RaFzZm7zRx9NKmLFnIeCC+h2LwkrOuprG3PsDM+g1IfPEFWvVbTSDKPnFA==}
 
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
@@ -1535,6 +1541,8 @@ snapshots:
       path-type: 4.0.0
 
   eastasianwidth@0.2.0: {}
+
+  effect@3.2.5: {}
 
   emoji-regex@8.0.0: {}
 

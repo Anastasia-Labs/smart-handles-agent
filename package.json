@@ -4,7 +4,7 @@
   "description": "Monitoring CLI application for routing requests submitted to smart handles script on Cardano",
   "main": "index.js",
   "scripts": {
-    "build": "tsup src/index.ts --format esm",
+    "build": "tsup src/index.ts --minify --format esm,cjs --clean",
     "quick-test": "tsup src/index.ts --format esm && node dist/index.js monitor --help",
     "test": "test"
   },
@@ -39,7 +39,8 @@
     "@anastasia-labs/smart-handles-offchain": "^0.1.0",
     "@commander-js/extra-typings": "^12.1.0",
     "chalk": "^5.3.0",
-    "commander": "^12.1.0"
+    "commander": "^12.1.0",
+    "effect": "^3.2.5"
   },
   "packageManager": "pnpm@9.0.4+sha1.b198ac6d38244fd829253720f9daafd6a606834d"
 }

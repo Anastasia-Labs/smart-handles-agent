@@ -27,10 +27,8 @@ export const logAbort = (msg: string) => {
   console.log(`${chalk.red(chalk.bold("ABORT:"))} ${chalk.red(msg)}`);
 };
 
-export const logNoneFound = (variant: string) => {
-  const now = new Date();
-  const msg = `No ${variant} requests found`;
-  const timeStr = now.toLocaleString("en-US", {
+export const showTime = (d: Date): string => {
+  return d.toLocaleString("en-US", {
     month: "2-digit",
     day: "2-digit",
     year: "numeric",
@@ -39,5 +37,11 @@ export const logNoneFound = (variant: string) => {
     second: "2-digit",
     hour12: false,
   }).replace(/\//g, ".");
+};
+
+export const logNoneFound = (variant: string) => {
+  const now = new Date();
+  const msg = `No ${variant} requests found`;
+  const timeStr = showTime(now);
   console.log(chalk.dim(`${chalk.bold(timeStr)}\u0009${msg}`));
 };

@@ -1,6 +1,7 @@
 #!/bin/env node
 
 import * as packageJson from "../package.json";
+import { Effect } from "effect";
 import { Command } from "@commander-js/extra-typings";
 import {
   Blockfrost,
