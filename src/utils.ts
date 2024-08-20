@@ -2,6 +2,17 @@ import * as chalk_ from "chalk";
 
 export const chalk = new chalk_.Chalk();
 
+export type Result<T> =
+  | { type: "ok"; data: T }
+  | { type: "error"; error: string };
+
+export function ok<T>(x: T): Result<T> {
+  return {
+    type: "ok",
+    data: x,
+  };
+}
+
 export type Target = "Single" | "Batch" | "Both";
 
 export const matchTarget = (

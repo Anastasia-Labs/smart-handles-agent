@@ -9,8 +9,20 @@ import {
   fetchSingleRequestUTxOs,
   getBatchVAs,
   getSingleValidatorVA,
-} from "@anastasia-labs/smart-handles-offchain";
-import { chalk, Target, matchTarget, logAbort, logNoneFound, logWarning } from "./utils";
+  // } from "@anastasia-labs/smart-handles-offchain";
+} from "../../smart-handles-offchain/src/index";
+import {
+  chalk,
+  Result,
+  Target,
+  matchTarget,
+  logAbort,
+  logNoneFound,
+  logWarning,
+  ok,
+} from "./utils";
+import { existsSync, readFileSync } from "fs";
+import { Network } from "@anastasia-labs/smart-handles-offchain";
 
 const program: Command = new Command();
 
@@ -29,6 +41,40 @@ Make sure you first have set these 2 environment variables:
 \u0009${chalk.bold("BLOCKFROST_KEY")}\u0009 Your Blockfrost API key
 \u0009${chalk.bold("SEED_PHRASE")}   \u0009 Your wallet's seed phrase
 `
+  )
+  .requiredOption(
+    "--script <file>",
+    `Path to your script's JSON file. Its content must look similar to this (triple
+backticks indicate start and end of the file):
+${chalk.dim("```json")}
+{
+    "cborHex": "5906...0101",
+    "description": "Smart Handle Router",
+    "type": "PlutusScriptV2"
+}
+${chalk.dim("```")}
+Only the "cborHex" matters here. It is assumed the version is Plutus V2.
+`,
+    (filePath: string): string => {
+      if (!existsSync(filePath)) {
+        logAbort(`Error: File '${filePath}' does not exist`);
+        process.exit(1);
+      }
+      const jsonContent = readFileSync(filePath, "utf-8");
+      try {
+        const parsed: { cborHex: string } & { [key: string]: any } =
+          JSON.parse(jsonContent);
+        if (parsed && "cborHex" in parsed) {
+          return parsed.cborHex;
+        } else {
+          logAbort('Provided JSON doesn\'t have a "cborHex" field');
+          process.exit(1);
+        }
+      } catch (e) {
+        logAbort("Failed to parse the provided JSON file");
+        process.exit(1);
+      }
+    }
   )
   .option(
     "-t, --target <VARIANT>",
@@ -60,7 +106,7 @@ Make sure you first have set these 2 environment variables:
     10000
   )
   .option("--testnet", "Switch to preprod testnet", false)
-  .action(async ({ target, pollingInterval, testnet }) => {
+  .action(async ({ script: scriptCBOR, target, pollingInterval, testnet }) => {
     // ------- CONFIG REPORT --------------------------------------------------
     console.log("");
     console.log(
@@ -77,36 +123,35 @@ Make sure you first have set these 2 environment variables:
     console.log(chalk.dim(`Polling every ${pollingInterval}ms`));
     console.log("");
 
-    // ------- SETTING UP LUCID -----------------------------------------------
+    // ------- SETTING UP LUCID ------------------------------------------------
+    const network: Network = testnet ? "Preprod" : "Mainnet";
     const blockfrostKey = process.env.BLOCKFROST_KEY;
     const seedPhrase = process.env.SEED_PHRASE;
     if (!blockfrostKey) {
       logAbort("No Blockfrost API key was found (BLOCKFROST_KEY)");
-      return 1;
+      process.exit(1);
     }
     if (!seedPhrase) {
       logAbort("No wallet seed phrase found (SEED_PHRASE)");
-      return 1;
+      process.exit(1);
     }
     try {
-      const lucid = await Lucid.new(
+      const lucid = await Lucid(
         new Blockfrost(
           `https://cardano-${
             testnet ? "preprod" : "mainnet"
           }.blockfrost.io/api/v0`,
           blockfrostKey
         ),
-        testnet ? "Preprod" : "Mainnet"
+        network
       );
-      lucid.selectWalletFromSeed(seedPhrase);
+      lucid.selectWallet.fromSeed(seedPhrase);
 
-      // ------- POLLING --------------------------------------------------------
-      const singleVARes = getSingleValidatorVA(lucid, testnet);
-      const batchVAsRes = getBatchVAs(lucid, testnet);
-      const singleAddr =
-        singleVARes.type === "error" ? "" : singleVARes.data.address;
-      const batchAddr =
-        batchVAsRes.type === "error" ? "" : batchVAsRes.data.spendVA.address;
+      // ------- POLLING -------------------------------------------------------
+      const singleVA = getSingleValidatorVA(scriptCBOR, network);
+      const batchVAs = getBatchVAs(scriptCBOR, network);
+      const singleAddr = singleVA.address;
+      const batchAddr = batchVAs.spendVA.address;
       console.log("Querying:");
       matchTarget(
         target,
@@ -120,42 +165,48 @@ Make sure you first have set these 2 environment variables:
       );
       console.log("");
       setInterval(async () => {
+        const fsru = async () => {
+          return await fetchSingleRequestUTxOs(lucid, scriptCBOR, network);
+        };
+        const fbru = async () => {
+          return await fetchBatchRequestUTxOs(lucid, scriptCBOR, network);
+        };
         matchTarget(
           target,
           async () => {
             try {
-              const singleUTxOs = await fetchSingleRequestUTxOs(lucid, testnet);
+              const singleUTxOs = await fsru();
               if (singleUTxOs.length > 0) {
                 throw new Error("TODO: ROUTE SINGLE");
               } else {
                 logNoneFound("single");
               }
-            } catch(e) {
+            } catch (e) {
               logWarning(e.toString());
             }
           },
           async () => {
             try {
-              const batchUTxOs = await fetchBatchRequestUTxOs(lucid, testnet);
+              const batchUTxOs = await fbru();
               if (batchUTxOs.length > 0) {
                 throw new Error("TODO: ROUTE BATCH");
               } else {
                 logNoneFound("batch");
               }
-            } catch(e) {
+            } catch (e) {
               logWarning(e.toString());
             }
           },
           async () => {
             try {
-              const singleUTxOs = await fetchSingleRequestUTxOs(lucid, testnet);
-              const batchUTxOs = await fetchBatchRequestUTxOs(lucid, testnet);
+              const singleUTxOs = await fsru();
+              const batchUTxOs = await fbru();
               if (singleUTxOs.length > 0 || batchUTxOs.length > 0) {
                 throw new Error("TODO: ROUTE SINGLE & BATCH");
               } else {
                 logNoneFound("single or batch");
               }
-            } catch(e) {
+            } catch (e) {
               logWarning(e.toString());
             }
           }
@@ -163,7 +214,7 @@ Make sure you first have set these 2 environment variables:
       }, pollingInterval);
     } catch (e) {
       logAbort(e.toString());
-      return 1;
+      process.exit(1);
     }
   });
 
