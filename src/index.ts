@@ -1,7 +1,6 @@
 #!/bin/env node
 
 import * as packageJson from "../package.json";
-import { Effect } from "effect";
 import { Command } from "@commander-js/extra-typings";
 import {
   Blockfrost,
@@ -22,10 +21,10 @@ program
   .alias("m")
   .description(
     `
-Start monitoring the Minswap smart handles address, and perform the routing to
-collect their fees.
+Start monitoring the Minswap V1 smart handles address, and perform the routing
+to collect their fees.
 
-Make sure you've first set these 2 environment variables:
+Make sure you first have set these 2 environment variables:
 
 \u0009${chalk.bold("BLOCKFROST_KEY")}\u0009 Your Blockfrost API key
 \u0009${chalk.bold("SEED_PHRASE")}   \u0009 Your wallet's seed phrase
@@ -66,7 +65,7 @@ Make sure you've first set these 2 environment variables:
     console.log("");
     console.log(
       chalk.bold(
-        `Monitoring Minswap smart handles script for ${chalk.blue(
+        `Monitoring Minswap V1 smart handles script for ${chalk.blue(
           target == "Single"
             ? "SINGLE"
             : target == "Both"
