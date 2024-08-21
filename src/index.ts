@@ -3,30 +3,70 @@
 import * as packageJson from "../package.json";
 import { Command } from "@commander-js/extra-typings";
 import {
+  AddressDetails,
   Blockfrost,
   Lucid,
+  Network,
+  SingleRouteConfig,
+  errorToString,
   fetchBatchRequestUTxOs,
   fetchSingleRequestUTxOs,
+  getAddressDetails,
   getBatchVAs,
   getSingleValidatorVA,
+  UTxO,
   // } from "@anastasia-labs/smart-handles-offchain";
 } from "../../smart-handles-offchain/src/index";
 import {
   chalk,
-  Result,
   Target,
   matchTarget,
   logAbort,
   logNoneFound,
   logWarning,
-  ok,
 } from "./utils";
+import { RouterConfig } from "../router.config";
 import { existsSync, readFileSync } from "fs";
-import { Network } from "@anastasia-labs/smart-handles-offchain";
+import path from "path";
 
 const program: Command = new Command();
 
 program.version(packageJson.version).description(packageJson.description);
+
+const DEFAULT_ROUTER_CONFIG_NAME = "router.config.ts";
+const DEFAULT_CONFIG_PATH = path.resolve(
+  process.cwd(),
+  DEFAULT_ROUTER_CONFIG_NAME
+);
+
+async function loadRouterConfig(specifiedPath?: string): Promise<RouterConfig> {
+  const fullPath = specifiedPath
+    ? path.resolve(specifiedPath)
+    : DEFAULT_CONFIG_PATH;
+  const extension = path.extname(fullPath);
+
+  if (extension === ".ts") {
+    // For TypeScript files
+    try {
+      const tsNode = await import("ts-node");
+      tsNode.register({
+        transpileOnly: true,
+        compilerOptions: {
+          module: "commonjs",
+        },
+      });
+
+      const config = await import(fullPath);
+      return config.default || config;
+    } catch (error) {
+      logAbort(`Error loading TypeScript config: ${errorToString}`);
+      process.exit(1);
+    }
+  } else {
+    logAbort("Please provide a TypeScript file for config");
+    process.exit(1);
+  }
+}
 
 program
   .command("monitor")
@@ -42,6 +82,7 @@ Make sure you first have set these 2 environment variables:
 \u0009${chalk.bold("SEED_PHRASE")}   \u0009 Your wallet's seed phrase
 `
   )
+  .option("-c, --config <path>", "Path to config file")
   .requiredOption(
     "--script <file>",
     `Path to your script's JSON file. Its content must look similar to this (triple
@@ -55,13 +96,14 @@ ${chalk.dim("```json")}
 ${chalk.dim("```")}
 Only the "cborHex" matters here. It is assumed the version is Plutus V2.
 `,
-    (filePath: string): string => {
+    (initFilePath: string): string => {
+      const filePath = path.resolve(initFilePath);
       if (!existsSync(filePath)) {
         logAbort(`Error: File '${filePath}' does not exist`);
         process.exit(1);
       }
-      const jsonContent = readFileSync(filePath, "utf-8");
       try {
+        const jsonContent = readFileSync(filePath, "utf-8");
         const parsed: { cborHex: string } & { [key: string]: any } =
           JSON.parse(jsonContent);
         if (parsed && "cborHex" in parsed) {
@@ -72,6 +114,18 @@ Only the "cborHex" matters here. It is assumed the version is Plutus V2.
         }
       } catch (e) {
         logAbort("Failed to parse the provided JSON file");
+        process.exit(1);
+      }
+    }
+  )
+  .requiredOption(
+    "--route-destination <BECH32>",
+    "",
+    (initAddr: string): AddressDetails => {
+      try {
+        return getAddressDetails(initAddr);
+      } catch (e) {
+        logAbort("Bad route address encountered");
         process.exit(1);
       }
     }
@@ -106,116 +160,117 @@ Only the "cborHex" matters here. It is assumed the version is Plutus V2.
     10000
   )
   .option("--testnet", "Switch to preprod testnet", false)
-  .action(async ({ script: scriptCBOR, target, pollingInterval, testnet }) => {
-    // ------- CONFIG REPORT --------------------------------------------------
-    console.log("");
-    console.log(
-      chalk.bold(
-        `Monitoring Minswap V1 smart handles script for ${chalk.blue(
-          target == "Single"
-            ? "SINGLE"
-            : target == "Both"
-            ? "both SINGLE and BATCH"
-            : "BATCH"
-        )} requests on ${chalk.blue(testnet ? "PREPROD" : "MAINNET")}`
-      )
-    );
-    console.log(chalk.dim(`Polling every ${pollingInterval}ms`));
-    console.log("");
-
-    // ------- SETTING UP LUCID ------------------------------------------------
-    const network: Network = testnet ? "Preprod" : "Mainnet";
-    const blockfrostKey = process.env.BLOCKFROST_KEY;
-    const seedPhrase = process.env.SEED_PHRASE;
-    if (!blockfrostKey) {
-      logAbort("No Blockfrost API key was found (BLOCKFROST_KEY)");
-      process.exit(1);
-    }
-    if (!seedPhrase) {
-      logAbort("No wallet seed phrase found (SEED_PHRASE)");
-      process.exit(1);
-    }
-    try {
-      const lucid = await Lucid(
-        new Blockfrost(
-          `https://cardano-${
-            testnet ? "preprod" : "mainnet"
-          }.blockfrost.io/api/v0`,
-          blockfrostKey
-        ),
-        network
-      );
-      lucid.selectWallet.fromSeed(seedPhrase);
-
-      // ------- POLLING -------------------------------------------------------
-      const singleVA = getSingleValidatorVA(scriptCBOR, network);
-      const batchVAs = getBatchVAs(scriptCBOR, network);
-      const singleAddr = singleVA.address;
-      const batchAddr = batchVAs.spendVA.address;
-      console.log("Querying:");
-      matchTarget(
-        target,
-        () => console.log(chalk.whiteBright(singleAddr)),
-        () => console.log(chalk.whiteBright(batchAddr)),
-        () => {
-          console.log(chalk.whiteBright(singleAddr));
-          console.log("&");
-          console.log(chalk.whiteBright(batchAddr));
-        }
-      );
+  .action(
+    async ({
+      script: scriptCBOR,
+      routeDestination: routeAddressDetails,
+      target,
+      pollingInterval,
+      testnet,
+    }) => {
+      // ------- CONFIG REPORT --------------------------------------------------
       console.log("");
-      setInterval(async () => {
-        const fsru = async () => {
-          return await fetchSingleRequestUTxOs(lucid, scriptCBOR, network);
-        };
-        const fbru = async () => {
-          return await fetchBatchRequestUTxOs(lucid, scriptCBOR, network);
-        };
+      console.log(
+        chalk.bold(
+          `Monitoring Minswap V1 smart handles script for ${chalk.blue(
+            target == "Single"
+              ? "SINGLE"
+              : target == "Both"
+              ? "both SINGLE and BATCH"
+              : "BATCH"
+          )} requests on ${chalk.blue(testnet ? "PREPROD" : "MAINNET")}`
+        )
+      );
+      console.log(chalk.dim(`Polling every ${pollingInterval}ms`));
+      console.log("");
+
+      // ------- SETTING UP LUCID ------------------------------------------------
+      const network: Network = testnet ? "Preprod" : "Mainnet";
+      const blockfrostKey = process.env.BLOCKFROST_KEY;
+      const seedPhrase = process.env.SEED_PHRASE;
+      if (!blockfrostKey) {
+        logAbort("No Blockfrost API key was found (BLOCKFROST_KEY)");
+        process.exit(1);
+      }
+      if (!seedPhrase) {
+        logAbort("No wallet seed phrase found (SEED_PHRASE)");
+        process.exit(1);
+      }
+      try {
+        const lucid = await Lucid(
+          new Blockfrost(
+            `https://cardano-${
+              testnet ? "preprod" : "mainnet"
+            }.blockfrost.io/api/v0`,
+            blockfrostKey
+          ),
+          network
+        );
+        lucid.selectWallet.fromSeed(seedPhrase);
+
+        // ------- POLLING -------------------------------------------------------
+        const singleVA = getSingleValidatorVA(scriptCBOR, network);
+        const batchVAs = getBatchVAs(scriptCBOR, network);
+        const singleAddr = singleVA.address;
+        const batchAddr = batchVAs.spendVA.address;
+        console.log("Querying:");
         matchTarget(
           target,
-          async () => {
-            try {
-              const singleUTxOs = await fsru();
-              if (singleUTxOs.length > 0) {
-                throw new Error("TODO: ROUTE SINGLE");
-              } else {
-                logNoneFound("single");
-              }
-            } catch (e) {
-              logWarning(e.toString());
-            }
-          },
-          async () => {
-            try {
-              const batchUTxOs = await fbru();
-              if (batchUTxOs.length > 0) {
-                throw new Error("TODO: ROUTE BATCH");
-              } else {
-                logNoneFound("batch");
-              }
-            } catch (e) {
-              logWarning(e.toString());
-            }
-          },
-          async () => {
-            try {
-              const singleUTxOs = await fsru();
-              const batchUTxOs = await fbru();
-              if (singleUTxOs.length > 0 || batchUTxOs.length > 0) {
-                throw new Error("TODO: ROUTE SINGLE & BATCH");
-              } else {
-                logNoneFound("single or batch");
-              }
-            } catch (e) {
-              logWarning(e.toString());
-            }
+          () => console.log(chalk.whiteBright(singleAddr)),
+          () => console.log(chalk.whiteBright(batchAddr)),
+          () => {
+            console.log(chalk.whiteBright(singleAddr));
+            console.log("&");
+            console.log(chalk.whiteBright(batchAddr));
           }
         );
-      }, pollingInterval);
-    } catch (e) {
-      logAbort(e.toString());
-      process.exit(1);
+        console.log("");
+        setInterval(async () => {
+          const fsru = async () => {
+            return await fetchSingleRequestUTxOs(lucid, scriptCBOR, network);
+          };
+          const fbru = async () => {
+            return await fetchBatchRequestUTxOs(lucid, scriptCBOR, network);
+          };
+          // https://www.perplexity.ai/search/in-commander-js-what-s-the-bes-vNQ4jX6lSp25wwDMuH2ogQ
+          matchTarget(
+            target,
+            async () => {
+              try {
+                const singleUTxOs = await fsru();
+                if (singleUTxOs.length > 0) {
+                  singleUTxOs.forEach((u: UTxO) => {
+                    const routeConfig: RouteConfig;
+                    const singleConfig: SingleRouteConfig;
+                    const x: CommonRoute;
+                  });
+                  throw new Error("TODO: ROUTE SINGLE");
+                } else {
+                  logNoneFound("single");
+                }
+              } catch (e) {
+                logWarning(e.toString());
+              }
+            },
+            async () => {
+              try {
+                const batchUTxOs = await fbru();
+                if (batchUTxOs.length > 0) {
+                  throw new Error("TODO: ROUTE BATCH");
+                } else {
+                  logNoneFound("batch");
+                }
+              } catch (e) {
+                logWarning(e.toString());
+              }
+            }
+          );
+        }, pollingInterval);
+      } catch (e) {
+        logAbort(e.toString());
+        process.exit(1);
+      }
     }
-  });
+  );
 
 program.parse();

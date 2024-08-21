@@ -13,20 +13,17 @@ export function ok<T>(x: T): Result<T> {
   };
 }
 
-export type Target = "Single" | "Batch" | "Both";
+export type Target = "Single" | "Batch";
 
 export const matchTarget = (
   target: Target,
   onSingle: () => void,
   onBatch: () => void,
-  onBoth: () => void
 ) => {
   if (target == "Single") {
     onSingle();
-  } else if (target == "Batch") {
-    onBatch();
   } else {
-    onBoth();
+    onBatch();
   }
 };
 
