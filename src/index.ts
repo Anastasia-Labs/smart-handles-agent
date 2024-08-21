@@ -3,7 +3,6 @@
 import * as packageJson from "../package.json";
 import { Command } from "@commander-js/extra-typings";
 import {
-  AddressDetails,
   Blockfrost,
   Lucid,
   Network,
@@ -11,23 +10,26 @@ import {
   errorToString,
   fetchBatchRequestUTxOs,
   fetchSingleRequestUTxOs,
-  getAddressDetails,
   getBatchVAs,
   getSingleValidatorVA,
   UTxO,
+  singleRoute,
+  BatchRouteConfig,
+  batchRoute,
   // } from "@anastasia-labs/smart-handles-offchain";
 } from "../../smart-handles-offchain/src/index";
 import {
   chalk,
-  Target,
   matchTarget,
   logAbort,
   logNoneFound,
   logWarning,
+  showOutRef,
+  handleTxRes,
+  showShortOutRef,
 } from "./utils";
 import { RouterConfig } from "../router.config";
-import { existsSync, readFileSync } from "fs";
-import path from "path";
+import * as path from "path";
 
 const program: Command = new Command();
 
@@ -46,7 +48,7 @@ async function loadRouterConfig(specifiedPath?: string): Promise<RouterConfig> {
   const extension = path.extname(fullPath);
 
   if (extension === ".ts") {
-    // For TypeScript files
+    // Only TypeScript is expected.
     try {
       const tsNode = await import("ts-node");
       tsNode.register({
@@ -82,195 +84,147 @@ Make sure you first have set these 2 environment variables:
 \u0009${chalk.bold("SEED_PHRASE")}   \u0009 Your wallet's seed phrase
 `
   )
-  .option("-c, --config <path>", "Path to config file")
-  .requiredOption(
-    "--script <file>",
-    `Path to your script's JSON file. Its content must look similar to this (triple
-backticks indicate start and end of the file):
-${chalk.dim("```json")}
-{
-    "cborHex": "5906...0101",
-    "description": "Smart Handle Router",
-    "type": "PlutusScriptV2"
-}
-${chalk.dim("```")}
-Only the "cborHex" matters here. It is assumed the version is Plutus V2.
-`,
-    (initFilePath: string): string => {
-      const filePath = path.resolve(initFilePath);
-      if (!existsSync(filePath)) {
-        logAbort(`Error: File '${filePath}' does not exist`);
-        process.exit(1);
-      }
-      try {
-        const jsonContent = readFileSync(filePath, "utf-8");
-        const parsed: { cborHex: string } & { [key: string]: any } =
-          JSON.parse(jsonContent);
-        if (parsed && "cborHex" in parsed) {
-          return parsed.cborHex;
-        } else {
-          logAbort('Provided JSON doesn\'t have a "cborHex" field');
-          process.exit(1);
-        }
-      } catch (e) {
-        logAbort("Failed to parse the provided JSON file");
-        process.exit(1);
-      }
-    }
-  )
-  .requiredOption(
-    "--route-destination <BECH32>",
-    "",
-    (initAddr: string): AddressDetails => {
-      try {
-        return getAddressDetails(initAddr);
-      } catch (e) {
-        logAbort("Bad route address encountered");
-        process.exit(1);
-      }
-    }
-  )
   .option(
-    "-t, --target <VARIANT>",
-    "Specify smart handle variant: Single, Batch, or Both",
-    (initV: string): Target => {
-      const v = initV.toLowerCase();
-      if (v == "single") {
-        return "Single";
-      } else if (v == "both") {
-        return "Both";
-      } else {
-        return "Batch";
-      }
-    },
-    "Batch"
+    "--router-config <path>",
+    "Path to router config file",
+    loadRouterConfig
   )
-  .option(
-    "-i, --polling-interval <MS>",
-    "Specify the polling interval in milliseconds",
-    (x: string, def: number): number => {
-      const parsed = parseInt(x);
-      if (isNaN(parsed)) {
-        logWarning(`Bad polling interval, reverting to default (${def}ms)`);
-        return def;
+  .action(async ({ routerConfig: routerConfigPromise }) => {
+    let routerConfig: RouterConfig;
+    try {
+      if (routerConfigPromise) {
+        routerConfig = await routerConfigPromise;
       } else {
-        return parsed;
+        logAbort("Failed to fetch the config");
+        process.exit(1);
       }
-    },
-    10000
-  )
-  .option("--testnet", "Switch to preprod testnet", false)
-  .action(
-    async ({
-      script: scriptCBOR,
-      routeDestination: routeAddressDetails,
-      target,
-      pollingInterval,
-      testnet,
-    }) => {
-      // ------- CONFIG REPORT --------------------------------------------------
-      console.log("");
-      console.log(
-        chalk.bold(
-          `Monitoring Minswap V1 smart handles script for ${chalk.blue(
-            target == "Single"
-              ? "SINGLE"
-              : target == "Both"
-              ? "both SINGLE and BATCH"
-              : "BATCH"
-          )} requests on ${chalk.blue(testnet ? "PREPROD" : "MAINNET")}`
-        )
+    } catch (e) {
+      logAbort("Failed to fetch the config");
+      process.exit(1);
+    }
+    const network: Network = routerConfig.network ?? "Mainnet";
+    const pollingInterval = routerConfig.pollingInterval ?? 10_000;
+    // ------- CONFIG REPORT --------------------------------------------------
+    console.log("");
+    console.log(
+      chalk.bold(
+        `Monitoring Minswap V1 smart handles script for ${chalk.blue(
+          `${routerConfig.scriptTarget}`.toUpperCase()
+        )} requests on ${chalk.blue(`${routerConfig.network}`.toUpperCase())}`
+      )
+    );
+    console.log(chalk.dim(`Polling every ${pollingInterval}ms`));
+    console.log("");
+
+    // ------- SETTING UP LUCID ------------------------------------------------
+    const blockfrostKey = process.env.BLOCKFROST_KEY;
+    const seedPhrase = process.env.SEED_PHRASE;
+    if (!blockfrostKey) {
+      logAbort("No Blockfrost API key was found (BLOCKFROST_KEY)");
+      process.exit(1);
+    }
+    if (!seedPhrase) {
+      logAbort("No wallet seed phrase found (SEED_PHRASE)");
+      process.exit(1);
+    }
+    try {
+      const lucid = await Lucid(
+        new Blockfrost(
+          `https://cardano-${`${network}`.toLowerCase()}.blockfrost.io/api/v0`,
+          blockfrostKey
+        ),
+        network
       );
-      console.log(chalk.dim(`Polling every ${pollingInterval}ms`));
+      lucid.selectWallet.fromSeed(seedPhrase);
+
+      // ------- POLLING -------------------------------------------------------
+      const monitorAddress =
+        routerConfig.scriptTarget === "Single"
+          ? getSingleValidatorVA(routerConfig.scriptCBOR, network).address
+          : getBatchVAs(routerConfig.scriptCBOR, network).spendVA.address;
+      console.log("Querying:");
+      console.log(chalk.whiteBright(monitorAddress));
       console.log("");
-
-      // ------- SETTING UP LUCID ------------------------------------------------
-      const network: Network = testnet ? "Preprod" : "Mainnet";
-      const blockfrostKey = process.env.BLOCKFROST_KEY;
-      const seedPhrase = process.env.SEED_PHRASE;
-      if (!blockfrostKey) {
-        logAbort("No Blockfrost API key was found (BLOCKFROST_KEY)");
-        process.exit(1);
-      }
-      if (!seedPhrase) {
-        logAbort("No wallet seed phrase found (SEED_PHRASE)");
-        process.exit(1);
-      }
-      try {
-        const lucid = await Lucid(
-          new Blockfrost(
-            `https://cardano-${
-              testnet ? "preprod" : "mainnet"
-            }.blockfrost.io/api/v0`,
-            blockfrostKey
-          ),
-          network
-        );
-        lucid.selectWallet.fromSeed(seedPhrase);
-
-        // ------- POLLING -------------------------------------------------------
-        const singleVA = getSingleValidatorVA(scriptCBOR, network);
-        const batchVAs = getBatchVAs(scriptCBOR, network);
-        const singleAddr = singleVA.address;
-        const batchAddr = batchVAs.spendVA.address;
-        console.log("Querying:");
+      setInterval(async () => {
         matchTarget(
-          target,
-          () => console.log(chalk.whiteBright(singleAddr)),
-          () => console.log(chalk.whiteBright(batchAddr)),
-          () => {
-            console.log(chalk.whiteBright(singleAddr));
-            console.log("&");
-            console.log(chalk.whiteBright(batchAddr));
+          routerConfig.scriptTarget,
+          async () => {
+            // {{{
+            try {
+              const singleUTxOs = await fetchSingleRequestUTxOs(
+                lucid,
+                routerConfig.scriptCBOR,
+                network
+              );
+              if (singleUTxOs.length > 0) {
+                try {
+                  await Promise.all(
+                    singleUTxOs.map(async (u: UTxO) => {
+                      const routeConfig: SingleRouteConfig = {
+                        scriptCBOR: routerConfig.scriptCBOR,
+                        requestOutRef: { ...u },
+                        routeAddress: routerConfig.routeDestination,
+                        simpleRouteConfig: routerConfig.simpleRouteConfig,
+                        advancedRouteConfig: routerConfig.advancedReclaimConfig,
+                      };
+                      try {
+                        const txRes = await singleRoute(lucid, routeConfig);
+                        await handleTxRes(txRes, showOutRef({ ...u }));
+                      } catch (e) {
+                        logWarning(errorToString(e));
+                      }
+                    })
+                  );
+                } catch (e) {
+                  logWarning("Couldn't process route requests");
+                }
+              } else {
+                logNoneFound("single");
+              }
+            } catch (e) {
+              logWarning(e.toString());
+            }
+            // }}}
+          },
+          async () => {
+            // {{{
+            try {
+              const batchUTxOs = await fetchBatchRequestUTxOs(
+                lucid,
+                routerConfig.scriptCBOR,
+                network
+              );
+              if (batchUTxOs.length > 0) {
+                const batchRouteConfig: BatchRouteConfig = {
+                  stakingScriptCBOR: routerConfig.scriptCBOR,
+                  requestOutRefs: { ...batchUTxOs },
+                  routeAddress: routerConfig.routeDestination,
+                  simpleRouteConfig: routerConfig.simpleRouteConfig,
+                  advancedRouteConfig: routerConfig.advancedRouteConfig,
+                };
+                try {
+                  const txRes = await batchRoute(lucid, batchRouteConfig);
+                  const outRefsRendered: string[] = batchUTxOs.map((u) =>
+                    showShortOutRef({ ...u })
+                  );
+                  await handleTxRes(txRes, outRefsRendered.join(", "));
+                } catch (e) {
+                  logWarning(errorToString(e));
+                }
+              } else {
+                logNoneFound("batch");
+              }
+            } catch (e) {
+              logWarning(e.toString());
+            }
+            // }}}
           }
         );
-        console.log("");
-        setInterval(async () => {
-          const fsru = async () => {
-            return await fetchSingleRequestUTxOs(lucid, scriptCBOR, network);
-          };
-          const fbru = async () => {
-            return await fetchBatchRequestUTxOs(lucid, scriptCBOR, network);
-          };
-          // https://www.perplexity.ai/search/in-commander-js-what-s-the-bes-vNQ4jX6lSp25wwDMuH2ogQ
-          matchTarget(
-            target,
-            async () => {
-              try {
-                const singleUTxOs = await fsru();
-                if (singleUTxOs.length > 0) {
-                  singleUTxOs.forEach((u: UTxO) => {
-                    const routeConfig: RouteConfig;
-                    const singleConfig: SingleRouteConfig;
-                    const x: CommonRoute;
-                  });
-                  throw new Error("TODO: ROUTE SINGLE");
-                } else {
-                  logNoneFound("single");
-                }
-              } catch (e) {
-                logWarning(e.toString());
-              }
-            },
-            async () => {
-              try {
-                const batchUTxOs = await fbru();
-                if (batchUTxOs.length > 0) {
-                  throw new Error("TODO: ROUTE BATCH");
-                } else {
-                  logNoneFound("batch");
-                }
-              } catch (e) {
-                logWarning(e.toString());
-              }
-            }
-          );
-        }, pollingInterval);
-      } catch (e) {
-        logAbort(e.toString());
-        process.exit(1);
-      }
+      }, pollingInterval);
+    } catch (e) {
+      logAbort(e.toString());
+      process.exit(1);
     }
-  );
+  });
 
 program.parse();
