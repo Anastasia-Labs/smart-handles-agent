@@ -17,4 +17,5 @@ export interface RouterConfig {
   advancedReclaimConfig?: AdvancedReclaimConfig;
   simpleRouteConfig?: SimpleRouteConfig;
   advancedRouteConfig?: AdvancedRouteConfig;
+  extraInfoForAdvancedRequest?: CBORHex;
 }

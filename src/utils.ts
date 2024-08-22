@@ -80,7 +80,7 @@ export const logNoneFound = (variant: string) => {
   console.log(chalk.dim(`${chalk.bold(timeStr)}\u0009${msg}`));
 };
 
-export const handleTxRes = async (
+export const handleRouteTxRes = async (
   txRes: Result<TxSignBuilder>,
   txLabel: string,
   renderedUTxOs: string
