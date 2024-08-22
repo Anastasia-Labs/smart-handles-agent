@@ -79,17 +79,3 @@ export const logNoneFound = (variant: string) => {
   const timeStr = showTime(now);
   console.log(chalk.dim(`${chalk.bold(timeStr)}\u0009${msg}`));
 };
-
-export const handleRouteTxRes = async (
-  txRes: Result<TxSignBuilder>,
-  txLabel: string,
-  renderedUTxOs: string
-) => {
-  if (txRes.type === "error") {
-    logWarning(`Failed to build the ${txLabel} transaction for ${renderedUTxOs}`);
-  } else {
-    const signedTx = await txRes.data.sign.withWallet().complete();
-    const txHash = await signedTx.submit();
-    logSuccess(`Route tx hash: ${txHash}`);
-  }
-};

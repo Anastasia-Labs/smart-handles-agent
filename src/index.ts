@@ -385,12 +385,7 @@ ${ENV_VARS_GUIDE}`
   )
   .option(
     "--router-config <path>",
-    "Path to router config file",
-    loadRouterConfig
-  )
-  .option(
-    "--router-config <path>",
-    "Path to router config file",
+    ROUTER_CONFIG_OPTION_DESCRIPTION,
     loadRouterConfig
   )
   .action(async ({ routerConfig: routerConfigPromise }) => {
