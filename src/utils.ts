@@ -68,6 +68,11 @@ export const showTime = (d: Date): string => {
     .replace(/\//g, ".");
 };
 
+export const isHexString = (str: string): boolean => {
+  const hexRegex = /^[0-9A-Fa-f]+$/;
+  return hexRegex.test(str);
+};
+
 export const logNoneFound = (variant: string) => {
   const now = new Date();
   const msg = `No ${variant} requests found`;
@@ -77,10 +82,11 @@ export const logNoneFound = (variant: string) => {
 
 export const handleTxRes = async (
   txRes: Result<TxSignBuilder>,
+  txLabel: string,
   renderedUTxOs: string
 ) => {
   if (txRes.type === "error") {
-    logWarning(`Failed to build the route transaction for ${renderedUTxOs}`);
+    logWarning(`Failed to build the ${txLabel} transaction for ${renderedUTxOs}`);
   } else {
     const signedTx = await txRes.data.sign.withWallet().complete();
     const txHash = await signedTx.submit();
