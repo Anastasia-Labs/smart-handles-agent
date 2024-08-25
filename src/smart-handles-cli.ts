@@ -17,12 +17,37 @@ import {
   handleAssetOption,
   loadRouterConfig,
   handleFeeOption,
+  chalk,
 } from "./utils.js";
 // =============================================================================
 
 const program: Command = new Command();
 program.version(packageJson.version).description(
-  `${packageJson.description}
+`
+${chalk.red(
+`                        @#
+                       @@%#
+                      %@@@%#
+                     %%%%%%##
+                    %%%%%%%%%#
+                   %%%%%%%%%%%#
+                  %%%%%%%%%%####
+                 %%%%%%%%%#######
+                %%%%%%%%  ########
+               %%%%%%%%%  #########
+              %%%%%%%%%%  ##########
+             %%%%%%%%%%    ##########
+            %%%%%%%%%%      ##########
+           %%%%%%%%%%        ##########
+          %%%%%%%%%%          ##########
+         %%%%%%%%%%            ##########
+        ###%%%%%%%              ##########
+       #########                  #########
+
+ ${chalk.bgGray("    " + chalk.bold(chalk.whiteBright("A  N  A  S  T  A  S  I  A") + "     " + chalk.redBright("L  A  B  S")) + "    ")}
+`
+)}
+${packageJson.description}
 ${ENV_VARS_GUIDE}`
 );
 
