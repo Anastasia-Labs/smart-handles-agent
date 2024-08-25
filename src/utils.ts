@@ -1,8 +1,21 @@
 import * as chalk_ from "chalk";
+import * as path from "path";
 import {
+  Assets,
+  Blockfrost,
+  Lucid,
+  LucidEvolution,
+  Network,
   OutRef,
   Result,
+  RouteRequest,
+  TxSignBuilder,
+  batchRequest,
+  errorToString,
+  singleRequest,
 } from "@anastasia-labs/smart-handles-offchain";
+import {RouterConfig, Target} from "./types";
+import {DEFAULT_CONFIG_PATH} from "./constants";
 
 export const chalk = new chalk_.Chalk();
 
@@ -12,8 +25,6 @@ export function ok<T>(x: T): Result<T> {
     data: x,
   };
 }
-
-export type Target = "Single" | "Batch";
 
 export const matchTarget = (
   target: Target,
@@ -78,3 +89,165 @@ export const logNoneFound = (variant: string) => {
   const timeStr = showTime(now);
   console.log(chalk.dim(`${chalk.bold(timeStr)}\u0009${msg}`));
 };
+
+export async function setupLucid(network: Network): Promise<LucidEvolution> {
+  // {{{
+  const blockfrostKey = process.env.BLOCKFROST_KEY;
+  const seedPhrase = process.env.SEED_PHRASE;
+  if (!blockfrostKey) {
+    logAbort("No Blockfrost API key was found (BLOCKFROST_KEY)");
+    process.exit(1);
+  }
+  if (!seedPhrase) {
+    logAbort("No wallet seed phrase found (SEED_PHRASE)");
+    process.exit(1);
+  }
+  try {
+    const lucid = await Lucid(
+      new Blockfrost(
+        `https://cardano-${`${network}`.toLowerCase()}.blockfrost.io/api/v0`,
+        blockfrostKey
+      ),
+      network
+    );
+    lucid.selectWallet.fromSeed(seedPhrase);
+    return lucid;
+  } catch (e) {
+    logAbort(errorToString(e));
+    process.exit(1);
+  }
+  // }}}
+}
+
+export async function handleRouterConfigPromise(
+  rcp: Promise<RouterConfig> | undefined
+): Promise<RouterConfig> {
+  // {{{
+  let routerConfig: RouterConfig;
+  try {
+    if (rcp) {
+      routerConfig = await rcp;
+    } else {
+      logAbort("Failed to fetch the config");
+      process.exit(1);
+    }
+  } catch (e) {
+    logAbort("Failed to fetch the config");
+    process.exit(1);
+  }
+  return routerConfig;
+  // }}}
+}
+
+export function handleAssetOption(unitAndQty: string, prev: Assets): Assets {
+  // {{{
+  try {
+    const [initUnit, qtyStr] = unitAndQty.split(",");
+    const unit = initUnit.toLowerCase();
+    const qty = parseInt(qtyStr, 10);
+    if (isHexString(unit) && unit.length >= 56) {
+      prev[unit] = (prev[unit] ?? BigInt(0)) + BigInt(qty);
+      return prev;
+    } else {
+      logAbort("Invalid unit provided.");
+      process.exit(1);
+    }
+  } catch (e) {
+    logAbort(errorToString(e));
+    process.exit(1);
+  }
+  // }}}
+}
+
+export function handleFeeOption(q: string): bigint {
+  // {{{
+  try {
+    const n = parseInt(q, 10);
+    return BigInt(n);
+  } catch (e) {
+    logAbort(errorToString(e));
+    process.exit(1);
+  }
+  // }}}
+}
+
+export async function handleRouteRequest(routerConfig: RouterConfig, req: RouteRequest) {
+  // {{{
+  const network: Network = routerConfig.network ?? "Mainnet";
+  const lucid = await setupLucid(network);
+  const target: Target = routerConfig.scriptTarget;
+  const txRes =
+    target === "Single"
+      ? await singleRequest(lucid, {
+          scriptCBOR: routerConfig.scriptCBOR,
+          routeRequest: req,
+          additionalRequiredLovelaces: BigInt(0),
+        })
+      : await batchRequest(lucid, {
+          stakingScriptCBOR: routerConfig.scriptCBOR,
+          routeRequests: [req],
+          additionalRequiredLovelaces: BigInt(0),
+        });
+  if (txRes.type === "error") {
+    logAbort(errorToString(txRes.error));
+    process.exit(1);
+  } else {
+    try {
+      const signedTx = await txRes.data.sign.withWallet().complete();
+      const txHash = await signedTx.submit();
+      logSuccess(`Request tx hash: ${txHash}`);
+      process.exit(0);
+    } catch(e) {
+      logAbort(errorToString(e));
+      process.exit(1);
+    }
+  }
+  // }}}
+}
+
+export async function handleRouteTxRes(
+  txRes: Result<TxSignBuilder>,
+  txLabel: string,
+  renderedUTxOs: string
+) {
+  // {{{
+  if (txRes.type === "error") {
+    logWarning(`Failed to build the ${txLabel} transaction for ${renderedUTxOs}`);
+  } else {
+    const signedTx = await txRes.data.sign.withWallet().complete();
+    const txHash = await signedTx.submit();
+    logSuccess(`Route tx hash: ${txHash}`);
+  }
+  // }}}
+}
+
+export async function loadRouterConfig(specifiedPath?: string): Promise<RouterConfig> {
+  // {{{
+  const fullPath = specifiedPath
+    ? path.resolve(specifiedPath)
+    : DEFAULT_CONFIG_PATH;
+  const extension = path.extname(fullPath);
+
+  if (extension === ".ts") {
+    // Only TypeScript is expected.
+    try {
+      const tsNode = await import("ts-node");
+      tsNode.register({
+        transpileOnly: true,
+        compilerOptions: {
+          module: "commonjs",
+        },
+      });
+
+      const config = await import(fullPath);
+      return config.default || config;
+    } catch (error) {
+      logAbort(`Error loading TypeScript config: ${errorToString}`);
+      process.exit(1);
+    }
+  } else {
+    logAbort("Please provide a TypeScript file for config");
+    process.exit(1);
+  }
+  // }}}
+}

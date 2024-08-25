@@ -3,10 +3,12 @@ import {
   AdvancedReclaimConfig,
   AdvancedRouteConfig,
   CBORHex,
+  Data,
   Network,
   SimpleRouteConfig,
 } from "@anastasia-labs/smart-handles-offchain";
-import {Target} from "./src/utils";
+
+export type Target = "Single" | "Batch";
 
 export interface RouterConfig {
   network?: Network;
@@ -17,5 +19,5 @@ export interface RouterConfig {
   advancedReclaimConfig?: AdvancedReclaimConfig;
   simpleRouteConfig?: SimpleRouteConfig;
   advancedRouteConfig?: AdvancedRouteConfig;
-  extraInfoForAdvancedRequest?: CBORHex;
+  extraInfoBuilderForAdvancedRequest?: () => Data;
 }
