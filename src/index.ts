@@ -20,15 +20,13 @@ import {
   BatchRouteConfig,
   batchRoute,
   Assets,
-  SimpleRouteRequest,
   LucidEvolution,
   Result,
   singleRequest,
   RouteRequest,
   batchRequest,
   TxSignBuilder,
-  // } from "@anastasia-labs/smart-handles-offchain";
-} from "../../smart-handles-offchain/src/index";
+} from "@anastasia-labs/smart-handles-offchain";
 import {
   chalk,
   matchTarget,
@@ -40,8 +38,8 @@ import {
   isHexString,
   Target,
   logSuccess,
-} from "./utils";
-import { RouterConfig } from "../router.config";
+} from "./utils.js";
+import { RouterConfig } from "./router.config.js";
 import * as path from "path";
 // }}}
 // -----------------------------------------------------------------------------

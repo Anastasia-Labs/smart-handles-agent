@@ -2,8 +2,7 @@ import * as chalk_ from "chalk";
 import {
   OutRef,
   Result,
-  TxSignBuilder,
-} from "../../smart-handles-offchain/src";
+} from "@anastasia-labs/smart-handles-offchain";
 
 export const chalk = new chalk_.Chalk();
 

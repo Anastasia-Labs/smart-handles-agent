@@ -5,7 +5,7 @@ import {
   CBORHex,
   Network,
   SimpleRouteConfig,
-} from "../smart-handles-offchain/src/index";
+} from "@anastasia-labs/smart-handles-offchain";
 import {Target} from "./src/utils";
 
 export interface RouterConfig {
