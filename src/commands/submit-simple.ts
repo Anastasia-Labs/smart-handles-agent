@@ -1,21 +1,20 @@
-import { Assets, RouteRequest } from "@anastasia-labs/smart-handles-offchain";
-import { handleRouteRequest, handleRouterConfigPromise } from "../utils.js";
-import { RouterConfig } from "../types/index.js";
+import { Assets, CliConfig as Config, RouteRequest } from "@anastasia-labs/smart-handles-offchain";
+import { handleRouteRequest, handleConfigPromise } from "../utils.js";
 
 export async function submitSimple({
-  routerConfig: routerConfigPromise,
+  config: configPromise,
   lovelace,
   asset: nonAdaAssets,
 }: {
-  routerConfig?: Promise<RouterConfig>;
+  config?: Promise<Config>;
   lovelace: bigint;
   asset: Assets;
 }) {
-  const routerConfig = await handleRouterConfigPromise(routerConfigPromise);
+  const config = await handleConfigPromise(configPromise);
   const assets = { ...nonAdaAssets, lovelace: lovelace };
   const simpleRouteRequest: RouteRequest = {
     kind: "simple",
     data: { valueToLock: assets },
   };
-  await handleRouteRequest(routerConfig, simpleRouteRequest);
+  await handleRouteRequest(config, simpleRouteRequest);
 }

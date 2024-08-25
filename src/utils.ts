@@ -3,6 +3,8 @@ import * as path from "path";
 import {
   Assets,
   Blockfrost,
+  CliConfig as Config,
+  CliTarget as Target,
   Lucid,
   LucidEvolution,
   Network,
@@ -13,9 +15,9 @@ import {
   batchRequest,
   errorToString,
   singleRequest,
+  ROUTER_FEE,
 } from "@anastasia-labs/smart-handles-offchain";
-import {RouterConfig, Target} from "./types";
-import {DEFAULT_CONFIG_PATH} from "./constants";
+import {DEFAULT_CONFIG_PATH} from "./constants.js";
 
 export const chalk = new chalk_.Chalk();
 
@@ -119,14 +121,14 @@ export async function setupLucid(network: Network): Promise<LucidEvolution> {
   // }}}
 }
 
-export async function handleRouterConfigPromise(
-  rcp: Promise<RouterConfig> | undefined
-): Promise<RouterConfig> {
+export async function handleConfigPromise(
+  rcp: Promise<Config> | undefined
+): Promise<Config> {
   // {{{
-  let routerConfig: RouterConfig;
+  let config: Config;
   try {
     if (rcp) {
-      routerConfig = await rcp;
+      config = await rcp;
     } else {
       logAbort("Failed to fetch the config");
       process.exit(1);
@@ -135,7 +137,7 @@ export async function handleRouterConfigPromise(
     logAbort("Failed to fetch the config");
     process.exit(1);
   }
-  return routerConfig;
+  return config;
   // }}}
 }
 
@@ -171,20 +173,20 @@ export function handleFeeOption(q: string): bigint {
   // }}}
 }
 
-export async function handleRouteRequest(routerConfig: RouterConfig, req: RouteRequest) {
+export async function handleRouteRequest(config: Config, req: RouteRequest) {
   // {{{
-  const network: Network = routerConfig.network ?? "Mainnet";
+  const network: Network = config.network ?? "Mainnet";
   const lucid = await setupLucid(network);
-  const target: Target = routerConfig.scriptTarget;
+  const target: Target = config.scriptTarget;
   const txRes =
     target === "Single"
       ? await singleRequest(lucid, {
-          scriptCBOR: routerConfig.scriptCBOR,
+          scriptCBOR: config.scriptCBOR,
           routeRequest: req,
           additionalRequiredLovelaces: BigInt(0),
         })
       : await batchRequest(lucid, {
-          stakingScriptCBOR: routerConfig.scriptCBOR,
+          stakingScriptCBOR: config.scriptCBOR,
           routeRequests: [req],
           additionalRequiredLovelaces: BigInt(0),
         });
@@ -205,6 +207,23 @@ export async function handleRouteRequest(routerConfig: RouterConfig, req: RouteR
   // }}}
 }
 
+export function handleLovelaceOption(q: string): bigint {
+  // {{{
+  try {
+    const n = parseInt(q, 10);
+    if (n >= ROUTER_FEE) {
+      return BigInt(n);
+    } else {
+      logAbort("Insufficient Lovelaces.");
+      process.exit(1);
+    }
+  } catch (e) {
+    logAbort(errorToString(e));
+    process.exit(1);
+  }
+  // }}}
+}
+
 export async function handleRouteTxRes(
   txRes: Result<TxSignBuilder>,
   txLabel: string,
@@ -221,7 +240,7 @@ export async function handleRouteTxRes(
   // }}}
 }
 
-export async function loadRouterConfig(specifiedPath?: string): Promise<RouterConfig> {
+export async function loadConfig(specifiedPath?: string): Promise<Config> {
   // {{{
   const fullPath = specifiedPath
     ? path.resolve(specifiedPath)

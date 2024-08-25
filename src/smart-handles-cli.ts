@@ -11,11 +11,11 @@ import {
   ENV_VARS_GUIDE,
   LOVELACE_OPTION_DESCRIPTION,
   ROUTER_CONFIG_OPTION_DESCRIPTION,
-  handleLovelaceOption,
 } from "./constants.js";
 import {
+  handleLovelaceOption,
   handleAssetOption,
-  loadRouterConfig,
+  loadConfig,
   handleFeeOption,
   chalk,
 } from "./utils.js";
@@ -59,9 +59,9 @@ program
 the script address.`
   )
   .option(
-    "--router-config <path>",
+    "--config <path>",
     ROUTER_CONFIG_OPTION_DESCRIPTION,
-    loadRouterConfig
+    loadConfig
   )
   .requiredOption(
     "-l, --lovelace <quantity>",
@@ -85,9 +85,9 @@ program
 monitoring the script address.`
   )
   .option(
-    "--router-config <path>",
+    "--config <path>",
     ROUTER_CONFIG_OPTION_DESCRIPTION,
-    loadRouterConfig
+    loadConfig
   )
   .requiredOption(
     "-l, --lovelace <quantity>",
@@ -125,9 +125,9 @@ program
 collect their fees.`
   )
   .option(
-    "--router-config <path>",
+    "--config <path>",
     ROUTER_CONFIG_OPTION_DESCRIPTION,
-    loadRouterConfig
+    loadConfig
   )
   .action(monitor);
 // =============================================================================

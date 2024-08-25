@@ -1,28 +1,27 @@
-import { Assets, RouteRequest } from "@anastasia-labs/smart-handles-offchain";
+import { Assets, CliConfig as Config, RouteRequest } from "@anastasia-labs/smart-handles-offchain";
 import {
   handleRouteRequest,
-  handleRouterConfigPromise,
+  handleConfigPromise,
   logAbort,
 } from "../utils.js";
-import { RouterConfig } from "../types/index.js";
 
 export async function submitAdvanced({
-  routerConfig: routerConfigPromise,
+  config: configPromise,
   lovelace,
   asset: nonAdaAssets,
   markOwner,
   routerFee,
   reclaimRouterFee,
 }: {
-  routerConfig?: Promise<RouterConfig>;
+  config?: Promise<Config>;
   lovelace: bigint;
   asset: Assets;
   markOwner?: true;
   routerFee: bigint;
   reclaimRouterFee: bigint;
 }) {
-  const routerConfig = await handleRouterConfigPromise(routerConfigPromise);
-  if (routerConfig.extraInfoBuilderForAdvancedRequest) {
+  const config = await handleConfigPromise(configPromise);
+  if (config.extraInfoBuilderForAdvancedRequest) {
     const assets = { ...nonAdaAssets, lovelace: lovelace };
     const advancedRouteRequest: RouteRequest = {
       kind: "advanced",
@@ -31,10 +30,10 @@ export async function submitAdvanced({
         markWalletAsOwner: markOwner ?? false,
         routerFee,
         reclaimRouterFee,
-        extraInfoDataBuilder: routerConfig.extraInfoBuilderForAdvancedRequest,
+        extraInfoDataBuilder: config.extraInfoBuilderForAdvancedRequest,
       },
     };
-    await handleRouteRequest(routerConfig, advancedRouteRequest);
+    await handleRouteRequest(config, advancedRouteRequest);
   } else {
     logAbort("No `extraInfo` CBOR was provided in the config file.");
     process.exit(1);

@@ -1,5 +1,6 @@
 import {
   BatchRouteConfig,
+  CliConfig as Config,
   Network,
   SingleRouteConfig,
   UTxO,
@@ -11,11 +12,10 @@ import {
   getSingleValidatorVA,
   singleRoute,
 } from "@anastasia-labs/smart-handles-offchain";
-import { RouterConfig } from "../types/index.js";
 import {
   chalk,
   handleRouteTxRes,
-  handleRouterConfigPromise,
+  handleConfigPromise,
   logAbort,
   logNoneFound,
   logWarning,
@@ -26,22 +26,22 @@ import {
 } from "../utils.js";
 
 export async function monitor({
-  routerConfig: routerConfigPromise,
+  config: configPromise,
 }: {
-  routerConfig?: Promise<RouterConfig>;
+  config?: Promise<Config>;
 }) {
-  const routerConfig: RouterConfig = await handleRouterConfigPromise(
-    routerConfigPromise
+  const config: Config = await handleConfigPromise(
+    configPromise
   );
-  const network: Network = routerConfig.network ?? "Mainnet";
-  const pollingInterval = routerConfig.pollingInterval ?? 10_000;
+  const network: Network = config.network ?? "Mainnet";
+  const pollingInterval = config.pollingInterval ?? 10_000;
   // ------- CONFIG REPORT -----------------------------------------------------
   console.log("");
   console.log(
     chalk.bold(
       `Monitoring Minswap V1 smart handles script for ${chalk.blue(
-        `${routerConfig.scriptTarget}`.toUpperCase()
-      )} requests on ${chalk.blue(`${routerConfig.network}`.toUpperCase())}`
+        `${config.scriptTarget}`.toUpperCase()
+      )} requests on ${chalk.blue(`${config.network}`.toUpperCase())}`
     )
   );
   console.log(chalk.dim(`Polling every ${pollingInterval}ms`));
@@ -52,21 +52,21 @@ export async function monitor({
   try {
     // ------- POLLING ---------------------------------------------------------
     const monitorAddress =
-      routerConfig.scriptTarget === "Single"
-        ? getSingleValidatorVA(routerConfig.scriptCBOR, network).address
-        : getBatchVAs(routerConfig.scriptCBOR, network).spendVA.address;
+      config.scriptTarget === "Single"
+        ? getSingleValidatorVA(config.scriptCBOR, network).address
+        : getBatchVAs(config.scriptCBOR, network).spendVA.address;
     console.log("Querying:");
     console.log(chalk.whiteBright(monitorAddress));
     console.log("");
     setInterval(async () => {
       matchTarget(
-        routerConfig.scriptTarget,
+        config.scriptTarget,
         async () => {
           // {{{
           try {
             const singleUTxOs = await fetchSingleRequestUTxOs(
               lucid,
-              routerConfig.scriptCBOR,
+              config.scriptCBOR,
               network
             );
             if (singleUTxOs.length > 0) {
@@ -74,11 +74,11 @@ export async function monitor({
                 await Promise.all(
                   singleUTxOs.map(async (u: UTxO) => {
                     const routeConfig: SingleRouteConfig = {
-                      scriptCBOR: routerConfig.scriptCBOR,
+                      scriptCBOR: config.scriptCBOR,
                       requestOutRef: { ...u },
-                      routeAddress: routerConfig.routeDestination,
-                      simpleRouteConfig: routerConfig.simpleRouteConfig,
-                      advancedRouteConfig: routerConfig.advancedReclaimConfig,
+                      routeAddress: config.routeDestination,
+                      simpleRouteConfig: config.simpleRouteConfig,
+                      advancedRouteConfig: config.advancedReclaimConfig,
                     };
                     try {
                       const txRes = await singleRoute(lucid, routeConfig);
@@ -99,7 +99,7 @@ export async function monitor({
               logNoneFound("single");
             }
           } catch (e) {
-            logWarning(e.toString());
+            logWarning(errorToString(e));
           }
           // }}}
         },
@@ -108,16 +108,16 @@ export async function monitor({
           try {
             const batchUTxOs = await fetchBatchRequestUTxOs(
               lucid,
-              routerConfig.scriptCBOR,
+              config.scriptCBOR,
               network
             );
             if (batchUTxOs.length > 0) {
               const batchRouteConfig: BatchRouteConfig = {
-                stakingScriptCBOR: routerConfig.scriptCBOR,
+                stakingScriptCBOR: config.scriptCBOR,
                 requestOutRefs: { ...batchUTxOs },
-                routeAddress: routerConfig.routeDestination,
-                simpleRouteConfig: routerConfig.simpleRouteConfig,
-                advancedRouteConfig: routerConfig.advancedRouteConfig,
+                routeAddress: config.routeDestination,
+                simpleRouteConfig: config.simpleRouteConfig,
+                advancedRouteConfig: config.advancedRouteConfig,
               };
               try {
                 const txRes = await batchRoute(lucid, batchRouteConfig);
@@ -136,7 +136,7 @@ export async function monitor({
               logNoneFound("batch");
             }
           } catch (e) {
-            logWarning(e.toString());
+            logWarning(errorToString(e));
           }
           // }}}
         }

@@ -21,22 +21,6 @@ export const ROUTER_CONFIG_OPTION_DESCRIPTION = "Path to router config file";
 export const LOVELACE_OPTION_DESCRIPTION =
   "Lovelace count to be sent. Must be large enough to cover router fee.";
 
-export function handleLovelaceOption(q: string): bigint {
-  // {{{
-  try {
-    const n = parseInt(q, 10);
-    if (n >= ROUTER_FEE) {
-      return BigInt(n);
-    } else {
-      logAbort("Insufficient Lovelaces.");
-      process.exit(1);
-    }
-  } catch (e) {
-    logAbort(errorToString(e));
-    process.exit(1);
-  }
-  // }}}
-}
-
-export const ASSET_OPTION_DESCRIPTION = `Additional assets to be locked. \`unit\` is the concatenation of policy ID, and
+export const ASSET_OPTION_DESCRIPTION =
+  `Additional assets to be locked. \`unit\` is the concatenation of policy ID, and
 token name in hex format.`;
