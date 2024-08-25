@@ -44,6 +44,8 @@ import * as path from "path";
 // }}}
 // -----------------------------------------------------------------------------
 
+export type RouterConfig = RouterConfig;
+
 // --- HELPERS & CONSTANTS -----------------------------------------------------
 // {{{
 const DEFAULT_ROUTER_CONFIG_NAME = "router.config.ts";
@@ -141,7 +143,7 @@ async function loadRouterConfig(specifiedPath?: string): Promise<RouterConfig> {
 }
 
 const LOVELACE_OPTION_DESCRIPTION =
-  "Lovelace count to be sent. Must contain enough to cover router fee.";
+  "Lovelace count to be sent. Must be large enough to cover router fee.";
 function handleLovelaceOption(q: string): bigint {
   // {{{
   try {
@@ -247,18 +249,20 @@ async function handleRouteTxRes(
 // -----------------------------------------------------------------------------
 
 const program: Command = new Command();
-program.version(packageJson.version).description(packageJson.description);
+program
+  .version(packageJson.version)
+  .description(
+`${packageJson.description}
+${ENV_VARS_GUIDE}`
+  );
 
 // === SUBMIT-SIMPLE ===========================================================
 // {{{
 program
   .command("submit-simple")
   .description(
-    `
-Submit a simple route request to later be handled by a routing agent monitoring
-the script address.
-${ENV_VARS_GUIDE}
-`
+`Submit a simple route request to later be handled by a routing agent monitoring
+the script address.`
   )
   .option(
     "--router-config <path>",
@@ -301,11 +305,8 @@ ${ENV_VARS_GUIDE}
 program
   .command("submit-advanced")
   .description(
-    `
-Submit an advanced route request to later be handled by a routing agent
-monitoring the script address.
-${ENV_VARS_GUIDE}
-`
+`Submit an advanced route request to later be handled by a routing agent
+monitoring the script address.`
   )
   .option(
     "--router-config <path>",
@@ -376,10 +377,8 @@ program
   .command("monitor")
   .alias("m")
   .description(
-    `
-Start monitoring the provided smart handles instance, and perform the routing to
-collect their fees.
-${ENV_VARS_GUIDE}`
+`Start monitoring the provided smart handles instance, and perform the routing to
+collect their fees.`
   )
   .option(
     "--router-config <path>",
