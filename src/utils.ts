@@ -1,5 +1,6 @@
 import * as chalk_ from "chalk";
 import * as path from "path";
+import fs from "fs";
 import {
   Assets,
   Blockfrost,
@@ -268,5 +269,13 @@ export async function loadConfig(specifiedPath?: string): Promise<Config> {
     logAbort("Please provide a TypeScript file for config");
     process.exit(1);
   }
+  // }}}
+}
+
+export function loadJSONFile(filePath: string): {[key: string]: any} {
+  // {{{
+  const absolutePath = path.resolve(filePath);
+  const fileContents = fs.readFileSync(absolutePath, 'utf-8');
+  return JSON.parse(fileContents);
   // }}}
 }

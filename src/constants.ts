@@ -18,9 +18,11 @@ Make sure you first have set these 2 environment variables:
 
 export const ROUTER_CONFIG_OPTION_DESCRIPTION = "Path to router config file";
 
+export const EXTRA_SUBMIT_CONFIG_OPTION_DESCRIPTION =
+  "Path to extra config JSON file to provide more values for submitting a request";
+
 export const LOVELACE_OPTION_DESCRIPTION =
   "Lovelace count to be sent. Must be large enough to cover router fee.";
 
-export const ASSET_OPTION_DESCRIPTION =
-  `Additional assets to be locked. \`unit\` is the concatenation of policy ID, and
+export const ASSET_OPTION_DESCRIPTION = `Additional assets to be locked. \`unit\` is the concatenation of policy ID, and
 token name in hex format.`;

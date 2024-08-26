@@ -9,6 +9,7 @@ import { submitSimple } from "./commands/submit-simple.js";
 import {
   ASSET_OPTION_DESCRIPTION,
   ENV_VARS_GUIDE,
+  EXTRA_SUBMIT_CONFIG_OPTION_DESCRIPTION,
   LOVELACE_OPTION_DESCRIPTION,
   ROUTER_CONFIG_OPTION_DESCRIPTION,
 } from "./constants.js";
@@ -18,14 +19,15 @@ import {
   loadConfig,
   handleFeeOption,
   chalk,
+  loadJSONFile,
 } from "./utils.js";
 // =============================================================================
 
 const program: Command = new Command();
 program.version(packageJson.version).description(
-`
+  `
 ${chalk.red(
-`                        @#
+  `                        @#
                        @@%#
                       %@@@%#
                      %%%%%%##
@@ -44,7 +46,15 @@ ${chalk.red(
         ###%%%%%%%              ##########
        #########                  #########
 
- ${chalk.bgGray("    " + chalk.bold(chalk.whiteBright("A  N  A  S  T  A  S  I  A") + "     " + chalk.redBright("L  A  B  S")) + "    ")}
+ ${chalk.bgGray(
+   "    " +
+     chalk.bold(
+       chalk.whiteBright("A  N  A  S  T  A  S  I  A") +
+         "     " +
+         chalk.redBright("L  A  B  S")
+     ) +
+     "    "
+ )}
 `
 )}
 ${packageJson.description}
@@ -58,11 +68,7 @@ program
     `Submit a simple route request to later be handled by a routing agent monitoring
 the script address.`
   )
-  .option(
-    "--config <path>",
-    ROUTER_CONFIG_OPTION_DESCRIPTION,
-    loadConfig
-  )
+  .option("--config <path>", ROUTER_CONFIG_OPTION_DESCRIPTION, loadConfig)
   .requiredOption(
     "-l, --lovelace <quantity>",
     LOVELACE_OPTION_DESCRIPTION,
@@ -84,11 +90,7 @@ program
     `Submit an advanced route request to later be handled by a routing agent
 monitoring the script address.`
   )
-  .option(
-    "--config <path>",
-    ROUTER_CONFIG_OPTION_DESCRIPTION,
-    loadConfig
-  )
+  .option("--config <path>", ROUTER_CONFIG_OPTION_DESCRIPTION, loadConfig)
   .requiredOption(
     "-l, --lovelace <quantity>",
     LOVELACE_OPTION_DESCRIPTION,
@@ -113,6 +115,11 @@ sending it back to its owner. Note that if no owner is specified, the request
 won't be reclaimable.`,
     handleFeeOption
   )
+  .option(
+    "--extra-config <path>",
+    EXTRA_SUBMIT_CONFIG_OPTION_DESCRIPTION,
+    loadJSONFile
+  )
   .action(submitAdvanced);
 // =============================================================================
 
@@ -124,11 +131,7 @@ program
     `Start monitoring the provided smart handles instance, and perform the routing to
 collect their fees.`
   )
-  .option(
-    "--config <path>",
-    ROUTER_CONFIG_OPTION_DESCRIPTION,
-    loadConfig
-  )
+  .option("--config <path>", ROUTER_CONFIG_OPTION_DESCRIPTION, loadConfig)
   .action(monitor);
 // =============================================================================
 

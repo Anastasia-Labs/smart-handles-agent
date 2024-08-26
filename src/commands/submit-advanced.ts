@@ -1,41 +1,35 @@
-import { Assets, CliConfig as Config, RouteRequest } from "@anastasia-labs/smart-handles-offchain";
 import {
-  handleRouteRequest,
-  handleConfigPromise,
-  logAbort,
-} from "../utils.js";
+  Assets,
+  CliConfig as Config,
+  errorToString,
+} from "@anastasia-labs/smart-handles-offchain";
+import { handleRouteRequest, handleConfigPromise, logAbort } from "../utils.js";
 
-export async function submitAdvanced({
-  config: configPromise,
-  lovelace,
-  asset: nonAdaAssets,
-  markOwner,
-  routerFee,
-  reclaimRouterFee,
-}: {
+export async function submitAdvanced(allArgs: {
   config?: Promise<Config>;
   lovelace: bigint;
   asset: Assets;
   markOwner?: true;
   routerFee: bigint;
   reclaimRouterFee: bigint;
+  extraConfig?: { [key: string]: any };
 }) {
-  const config = await handleConfigPromise(configPromise);
-  if (config.extraInfoBuilderForAdvancedRequest) {
-    const assets = { ...nonAdaAssets, lovelace: lovelace };
-    const advancedRouteRequest: RouteRequest = {
-      kind: "advanced",
-      data: {
-        valueToLock: assets,
-        markWalletAsOwner: markOwner ?? false,
-        routerFee,
-        reclaimRouterFee,
-        extraInfoDataBuilder: config.extraInfoBuilderForAdvancedRequest,
-      },
-    };
-    await handleRouteRequest(config, advancedRouteRequest);
-  } else {
-    logAbort("No `extraInfo` CBOR was provided in the config file.");
+  try {
+    const configPromise = allArgs.config;
+    const config = await handleConfigPromise(configPromise);
+    if (config.advancedRouteRequestMaker) {
+      const rRRes = await config.advancedRouteRequestMaker(allArgs);
+      if (rRRes.type == "error") {
+        logAbort(errorToString(rRRes.error));
+        process.exit(1);
+      }
+      await handleRouteRequest(config, {kind: "advanced", data: rRRes.data});
+    } else {
+      logAbort("No `extraInfo` CBOR was provided in the config file.");
+      process.exit(1);
+    }
+  } catch(e) {
+    logAbort(errorToString(e));
     process.exit(1);
   }
 }
