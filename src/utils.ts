@@ -15,6 +15,8 @@ import {
   errorToString,
   singleRequest,
   ROUTER_FEE,
+  getSingleValidatorVA,
+  getBatchVAs,
 } from "@anastasia-labs/smart-handles-offchain";
 import { Config, Target } from "./types.js";
 
@@ -91,7 +93,7 @@ export const logNoneFound = (variant: string) => {
   console.log(chalk.dim(`${chalk.bold(timeStr)}\u0009${msg}`));
 };
 
-export async function setupLucid(network: Network): Promise<LucidEvolution> {
+export const setupLucid = async (network: Network): Promise<LucidEvolution> => {
   // {{{
   const blockfrostKey = process.env.BLOCKFROST_KEY;
   const seedPhrase = process.env.SEED_PHRASE;
@@ -120,9 +122,9 @@ export async function setupLucid(network: Network): Promise<LucidEvolution> {
   // }}}
 }
 
-export async function handleConfigPromise(
+export const handleConfigPromise = async (
   rcp: Promise<Config> | undefined
-): Promise<Config> {
+): Promise<Config> => {
   // {{{
   let config: Config;
   try {
@@ -138,9 +140,9 @@ export async function handleConfigPromise(
   }
   return config;
   // }}}
-}
+};
 
-export function handleAssetOption(unitAndQty: string, prev: Assets): Assets {
+export const handleAssetOption = (unitAndQty: string, prev: Assets): Assets => {
   // {{{
   try {
     const [initUnit, qtyStr] = unitAndQty.split(",");
@@ -158,9 +160,9 @@ export function handleAssetOption(unitAndQty: string, prev: Assets): Assets {
     process.exit(1);
   }
   // }}}
-}
+};
 
-export function handleFeeOption(q: string): bigint {
+export const handleFeeOption = (q: string): bigint => {
   // {{{
   try {
     const n = parseInt(q, 10);
@@ -170,13 +172,34 @@ export function handleFeeOption(q: string): bigint {
     process.exit(1);
   }
   // }}}
-}
+};
 
-export async function handleRouteRequest(config: Config, req: RouteRequest) {
+export const handleRouteRequest = async (config: Config, req: RouteRequest) => {
   // {{{
   const network: Network = config.network ?? "Mainnet";
   const lucid = await setupLucid(network);
   const target: Target = config.scriptTarget;
+  // ------- CONFIG REPORT -----------------------------------------------------
+  console.log("");
+  console.log(
+    chalk.bold(
+      `Submitting a route request to ${config.label} smart handles script for ${chalk.blue(
+        `${config.scriptTarget}`.toUpperCase()
+      )} on ${chalk.blue(`${config.network}`.toUpperCase())}`
+    )
+  );
+  console.log("");
+  const scriptAddress =
+    config.scriptTarget === "Single"
+      ? getSingleValidatorVA(config.scriptCBOR, network).address
+      : getBatchVAs(config.scriptCBOR, network).spendVA.address;
+  console.log("Smart Handles Address:");
+  console.log(chalk.whiteBright(scriptAddress));
+  console.log("");
+  console.log("Route Address:");
+  console.log(chalk.whiteBright(config.routeDestination));
+  console.log("");
+  console.log(chalk.dim("Building the transaction..."));
   const txRes =
     target === "Single"
       ? await singleRequest(lucid, {
@@ -193,8 +216,11 @@ export async function handleRouteRequest(config: Config, req: RouteRequest) {
     logAbort(errorToString(txRes.error));
     process.exit(1);
   } else {
+    console.log(chalk.dim("Transaction successfully built."));
     try {
+      console.log(chalk.dim("Signing the transaction..."));
       const signedTx = await txRes.data.sign.withWallet().complete();
+      console.log(chalk.dim("Submitting the transaction..."));
       const txHash = await signedTx.submit();
       logSuccess(`Request tx hash: ${txHash}`);
       process.exit(0);
@@ -204,9 +230,9 @@ export async function handleRouteRequest(config: Config, req: RouteRequest) {
     }
   }
   // }}}
-}
+};
 
-export function handleLovelaceOption(q: string): bigint {
+export const handleLovelaceOption = (q: string): bigint => {
   // {{{
   try {
     const n = parseInt(q, 10);
@@ -221,13 +247,13 @@ export function handleLovelaceOption(q: string): bigint {
     process.exit(1);
   }
   // }}}
-}
+};
 
-export async function handleRouteTxRes(
+export const handleRouteTxRes = async(
   txRes: Result<TxSignBuilder>,
   txLabel: string,
   renderedUTxOs: string
-) {
+) => {
   // {{{
   if (txRes.type === "error") {
     logWarning(`Failed to build the ${txLabel} transaction for ${renderedUTxOs}`);
@@ -237,12 +263,12 @@ export async function handleRouteTxRes(
     logSuccess(`Route tx hash: ${txHash}`);
   }
   // }}}
-}
+};
 
-export function loadJSONFile(filePath: string): {[key: string]: any} {
+export const loadJSONFile = (filePath: string): {[key: string]: any} => {
   // {{{
   const absolutePath = path.resolve(filePath);
   const fileContents = fs.readFileSync(absolutePath, 'utf-8');
   return JSON.parse(fileContents);
   // }}}
-}
+};

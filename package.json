@@ -2,8 +2,12 @@
   "name": "@anastasia-labs/smart-handles-agent",
   "version": "0.1.0",
   "description": "Provider for making CLI application for submitting and routing requests to a smart handles script on Cardano",
-  "main": "dist/index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --minify --format esm",
     "quick-test": "tsup src/index.ts --format esm && node dist/index.js --help",

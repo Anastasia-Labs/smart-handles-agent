@@ -3,7 +3,7 @@
     "target": "ESNext",
     "module": "NodeNext",
     "rootDir": "./src",
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "nodenext",
     "resolveJsonModule": true,
     "declaration": true,
     "sourceMap": true,
@@ -14,6 +14,6 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["./src/*"]
+  "include": ["./src/**/*"]
 }
 
