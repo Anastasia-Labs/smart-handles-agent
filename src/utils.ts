@@ -4,8 +4,6 @@ import fs from "fs";
 import {
   Assets,
   Blockfrost,
-  CliConfig as Config,
-  CliTarget as Target,
   Lucid,
   LucidEvolution,
   Network,
@@ -18,7 +16,7 @@ import {
   singleRequest,
   ROUTER_FEE,
 } from "@anastasia-labs/smart-handles-offchain";
-import {DEFAULT_CONFIG_PATH} from "./constants.js";
+import { Config, Target } from "./types.js";
 
 export const chalk = new chalk_.Chalk();
 
@@ -237,37 +235,6 @@ export async function handleRouteTxRes(
     const signedTx = await txRes.data.sign.withWallet().complete();
     const txHash = await signedTx.submit();
     logSuccess(`Route tx hash: ${txHash}`);
-  }
-  // }}}
-}
-
-export async function loadConfig(specifiedPath?: string): Promise<Config> {
-  // {{{
-  const fullPath = specifiedPath
-    ? path.resolve(specifiedPath)
-    : DEFAULT_CONFIG_PATH;
-  const extension = path.extname(fullPath);
-
-  if (extension === ".ts") {
-    // Only TypeScript is expected.
-    try {
-      const tsNode = await import("ts-node");
-      tsNode.register({
-        transpileOnly: true,
-        compilerOptions: {
-          module: "commonjs",
-        },
-      });
-
-      const config = await import(fullPath);
-      return config.default || config;
-    } catch (error) {
-      logAbort(`Error loading TypeScript config: ${errorToString}`);
-      process.exit(1);
-    }
-  } else {
-    logAbort("Please provide a TypeScript file for config");
-    process.exit(1);
   }
   // }}}
 }
