@@ -1,4 +1,4 @@
-#!/bin/env node
+#!/usr/bin/env node
 
 // === IMPORTS =================================================================
 import * as packageJson from "../package.json";

@@ -2,13 +2,13 @@
   "name": "@anastasia-labs/smart-handles-cli",
   "version": "0.1.0",
   "description": "CLI application for submitting and routing requests to a smart handles script on Cardano",
-  "main": "./dist/smart-handles-cli.js",
+  "main": "dist/smart-handles-cli.js",
   "type": "module",
   "bin": {
-    "smart-handles-cli": "./dist/smart-handles-cli.js"
+    "smart-handles-cli": "dist/smart-handles-cli.js"
   },
   "files": [
-    "dist"
+    "/dist/"
   ],
   "scripts": {
     "build": "tsup src/smart-handles-cli.ts --minify --format esm",
