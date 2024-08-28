@@ -183,7 +183,7 @@ export const handleRouteRequest = async (config: Config, req: RouteRequest) => {
   console.log("");
   console.log(
     chalk.bold(
-      `Submitting a route request to ${config.label} smart handles script for ${chalk.blue(
+      `Submitting a route request to ${config.label ? `${config.label} ` : ""}smart handles script for ${chalk.blue(
         `${config.scriptTarget}`.toUpperCase()
       )} on ${chalk.blue(`${config.network}`.toUpperCase())}`
     )

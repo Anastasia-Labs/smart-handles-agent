@@ -20,7 +20,7 @@ import {
 } from "./utils.js";
 // =============================================================================
 
-export const main = async (config: Config) => {
+export const main = (config: Config): Command => {
   const program: Command = new Command();
   program.version(packageJson.version).description(
     `
@@ -130,5 +130,6 @@ export const main = async (config: Config) => {
     .action(monitor(config));
   // ===========================================================================
   
-  await program.parseAsync(process.argv);
+  return program;
+  // return await program.parseAsync(process.argv);
 };
