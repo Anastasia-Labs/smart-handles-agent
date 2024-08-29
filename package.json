@@ -9,8 +9,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --minify --format esm",
-    "quick-test": "tsup src/index.ts --format esm && node dist/index.js --help",
+    "build": "tsc",
     "repack": "pnpm run build  && pnpm pack",
     "test": "test"
   },
