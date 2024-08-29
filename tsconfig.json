@@ -6,6 +6,7 @@
     "moduleResolution": "nodenext",
     "resolveJsonModule": true,
     "declaration": true,
+    "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
     "allowSyntheticDefaultImports": true,

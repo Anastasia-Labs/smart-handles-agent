@@ -1,5 +1,4 @@
 // === IMPORTS =================================================================
-import * as packageJson from "../package.json";
 import { Command } from "@commander-js/extra-typings";
 import { monitor } from "./commands/monitor.js";
 import { submitAdvanced } from "./commands/submit-advanced.js";
@@ -22,7 +21,7 @@ import {
 
 export const main = (config: Config): Command => {
   const program: Command = new Command();
-  program.version(packageJson.version).description(
+  program.version("0.1.0").description(
     `
   ${chalk.red(
     `                        @#
@@ -55,7 +54,7 @@ export const main = (config: Config): Command => {
    )}
   `
   )}
-  ${packageJson.description}
+  ${"Provider for making CLI application for submitting and routing requests to a smart handles script on Cardano"}
   ${ENV_VARS_GUIDE}`
   );
   
