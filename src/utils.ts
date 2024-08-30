@@ -51,22 +51,6 @@ export const showShortOutRef = (outRef: OutRef): string => {
   }`;
 };
 
-export const logSuccess = (msg: string) => {
-  console.log(`${chalk.green(chalk.bold("SUCCESS!"))} ${chalk.green(msg)}`);
-};
-
-export const logWarning = (msg: string) => {
-  console.log(`${chalk.yellow(chalk.bold("WARNING:"))} ${chalk.yellow(msg)}`);
-};
-
-export const logAbort = (msg: string) => {
-  console.log(`${chalk.red(chalk.bold("ABORT:"))} ${chalk.red(msg)}`);
-};
-
-export const logInfo = (msg: string) => {
-  console.log(`${chalk.blue(chalk.bold("INFO:"))} ${chalk.blue(msg)}`);
-};
-
 export const showTime = (d: Date): string => {
   return d
     .toLocaleString("en-US", {
@@ -81,16 +65,43 @@ export const showTime = (d: Date): string => {
     .replace(/\//g, ".");
 };
 
+const logWithTime = (
+  color: chalk_.ChalkInstance,
+  label: string,
+  msg: string
+) => {
+  const now = new Date();
+  const timeStr = showTime(now);
+  console.log(
+    `${color(chalk.bold(`${timeStr}\u0009${label}`))}${
+      label === "" ? "" : " "
+    }${color(msg)}`
+  );
+};
+
+export const logSuccess = (msg: string) => {
+  logWithTime(chalk.green, "SUCCESS!", msg);
+};
+
+export const logWarning = (msg: string) => {
+  logWithTime(chalk.yellow, "WARNING:", msg);
+};
+
+export const logAbort = (msg: string) => {
+  logWithTime(chalk.red, "ABORT:", msg);
+};
+
+export const logInfo = (msg: string) => {
+  logWithTime(chalk.blue, "INFO:", msg);
+};
+
 export const isHexString = (str: string): boolean => {
   const hexRegex = /^[0-9A-Fa-f]+$/;
   return hexRegex.test(str);
 };
 
 export const logNoneFound = (variant: string) => {
-  const now = new Date();
-  const msg = `No ${variant} requests found`;
-  const timeStr = showTime(now);
-  console.log(chalk.dim(`${chalk.bold(timeStr)}\u0009${msg}`));
+  logWithTime(chalk.dim, "", `No ${variant} requests found`);
 };
 
 export const setupLucid = async (network: Network): Promise<LucidEvolution> => {
@@ -120,7 +131,7 @@ export const setupLucid = async (network: Network): Promise<LucidEvolution> => {
     process.exit(1);
   }
   // }}}
-}
+};
 
 export const handleConfigPromise = async (
   rcp: Promise<Config> | undefined
@@ -183,7 +194,9 @@ export const handleRouteRequest = async (config: Config, req: RouteRequest) => {
   console.log("");
   console.log(
     chalk.bold(
-      `Submitting a route request to ${config.label ? `${config.label} ` : ""}smart handles script for ${chalk.blue(
+      `Submitting a route request to ${
+        config.label ? `${config.label} ` : ""
+      }smart handles script for ${chalk.blue(
         `${config.scriptTarget}`.toUpperCase()
       )} on ${chalk.blue(`${config.network}`.toUpperCase())}`
     )
@@ -224,7 +237,7 @@ export const handleRouteRequest = async (config: Config, req: RouteRequest) => {
       const txHash = await signedTx.submit();
       logSuccess(`Request tx hash: ${txHash}`);
       process.exit(0);
-    } catch(e) {
+    } catch (e) {
       logAbort(errorToString(e));
       process.exit(1);
     }
@@ -249,14 +262,16 @@ export const handleLovelaceOption = (q: string): bigint => {
   // }}}
 };
 
-export const handleRouteTxRes = async(
+export const handleRouteTxRes = async (
   txRes: Result<TxSignBuilder>,
   txLabel: string,
   renderedUTxOs: string
 ) => {
   // {{{
   if (txRes.type === "error") {
-    logWarning(`Failed to build the ${txLabel} transaction for ${renderedUTxOs}`);
+    logWarning(
+      `Failed to build the ${txLabel} transaction for ${renderedUTxOs}`
+    );
   } else {
     const signedTx = await txRes.data.sign.withWallet().complete();
     const txHash = await signedTx.submit();
@@ -265,10 +280,10 @@ export const handleRouteTxRes = async(
   // }}}
 };
 
-export const loadJSONFile = (filePath: string): {[key: string]: any} => {
+export const loadJSONFile = (filePath: string): { [key: string]: any } => {
   // {{{
   const absolutePath = path.resolve(filePath);
-  const fileContents = fs.readFileSync(absolutePath, 'utf-8');
+  const fileContents = fs.readFileSync(absolutePath, "utf-8");
   return JSON.parse(fileContents);
   // }}}
 };

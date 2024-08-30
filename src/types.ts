@@ -15,7 +15,7 @@ export type Target = "Single" | "Batch";
 export type RequestInfo = {
   lovelace: bigint;
   asset: Assets;
-  markOwner?: true;
+  owner?: Address;
   routerFee: bigint;
   reclaimRouterFee: bigint;
   extraConfig?: { [key: string]: any };

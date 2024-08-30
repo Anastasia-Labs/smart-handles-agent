@@ -1,19 +1,11 @@
 import {
-  Assets,
   errorToString,
 } from "@anastasia-labs/smart-handles-offchain";
-import { Config } from "../types.js";
+import { Config, RequestInfo } from "../types.js";
 import { handleRouteRequest, logAbort } from "../utils.js";
 
 export function submitAdvanced(config: Config) {
-  return async (allArgs: {
-    lovelace: bigint;
-    asset: Assets;
-    markOwner?: true;
-    routerFee: bigint;
-    reclaimRouterFee: bigint;
-    extraConfig?: { [key: string]: any };
-  }) => {
+  return async (allArgs: RequestInfo) => {
     try {
       if (config.advancedRouteRequestMaker) {
         const rRRes = await config.advancedRouteRequestMaker(allArgs);
