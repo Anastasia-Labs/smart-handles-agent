@@ -16,7 +16,9 @@ import {
   handleFeeOption,
   chalk,
   loadJSONFile,
+  handleAddressOption,
 } from "./utils.js";
+import {getAddressDetails} from "@anastasia-labs/smart-handles-offchain";
 // =============================================================================
 
 export const main = (config: Config): Command => {
@@ -97,7 +99,11 @@ export const main = (config: Config): Command => {
       handleAssetOption,
       {}
     )
-    .option("--mark-owner", "Mark this wallet as the owner of the UTxO")
+    .option(
+      "--owner <bech32-address>",
+      "Optional address to be recorded as owner of the UTxO",
+      handleAddressOption
+    )
     .requiredOption(
       "--router-fee <lovelaces>",
       "Lovelaces collectable by the routing agent for handling this request",

@@ -1,5 +1,6 @@
 import {
   Address,
+  AddressDetails,
   AdvancedReclaimConfig,
   AdvancedRouteConfig,
   AdvancedRouteRequest,
@@ -15,7 +16,7 @@ export type Target = "Single" | "Batch";
 export type RequestInfo = {
   lovelace: bigint;
   asset: Assets;
-  owner?: Address;
+  owner?: AddressDetails;
   routerFee: bigint;
   reclaimRouterFee: bigint;
   extraConfig?: { [key: string]: any };

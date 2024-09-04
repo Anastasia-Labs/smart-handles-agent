@@ -6,6 +6,15 @@ import { handleRouteRequest, logAbort } from "../utils.js";
 
 export function submitAdvanced(config: Config) {
   return async (allArgs: RequestInfo) => {
+    if (allArgs.owner) {
+      if (allArgs.owner.networkId !== 1 && (!config.network || config.network === "Mainnet")) {
+        logAbort("Provided owner address is for testnet, but the specified network in config is set/defaulted to mainnet");
+        process.exit(1);
+      } else if (allArgs.owner.networkId === 1 && (config.network && config.network !== "Mainnet")) {
+        logAbort("Provided owner address is for mainnet, but the specified network in config is not");
+        process.exit(1);
+      }
+    }
     try {
       if (config.advancedRouteRequestMaker) {
         const rRRes = await config.advancedRouteRequestMaker(allArgs);

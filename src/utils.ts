@@ -17,6 +17,8 @@ import {
   ROUTER_FEE,
   getSingleValidatorVA,
   getBatchVAs,
+  getAddressDetails,
+  AddressDetails,
 } from "@anastasia-labs/smart-handles-offchain";
 import { Config, Target } from "./types.js";
 
@@ -150,6 +152,17 @@ export const handleConfigPromise = async (
     process.exit(1);
   }
   return config;
+  // }}}
+};
+
+export const handleAddressOption = (initAddr: string): AddressDetails => {
+  // {{{
+  try {
+    return getAddressDetails(initAddr);
+  } catch(e) {
+    logAbort(errorToString(e));
+    process.exit(1);
+  }
   // }}}
 };
 
