@@ -18,7 +18,6 @@ import {
   loadJSONFile,
   handleAddressOption,
 } from "./utils.js";
-import {getAddressDetails} from "@anastasia-labs/smart-handles-offchain";
 // =============================================================================
 
 export const main = (config: Config): Command => {

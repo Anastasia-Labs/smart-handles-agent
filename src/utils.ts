@@ -19,8 +19,10 @@ import {
   getBatchVAs,
   getAddressDetails,
   AddressDetails,
+  UTxO,
 } from "@anastasia-labs/smart-handles-offchain";
 import { Config, Target } from "./types.js";
+import {getRoutedUTxOs} from "./global.js";
 
 export const chalk = new chalk_.Chalk();
 
@@ -276,6 +278,7 @@ export const handleLovelaceOption = (q: string): bigint => {
 };
 
 export const handleRouteTxRes = async (
+  inputUTxOs: UTxO[],
   txRes: Result<TxSignBuilder>,
   txLabel: string,
   renderedUTxOs: string
@@ -283,12 +286,19 @@ export const handleRouteTxRes = async (
   // {{{
   if (txRes.type === "error") {
     logWarning(
-      `Failed to build the ${txLabel} transaction for ${renderedUTxOs}`
+      `Failed to build the ${txLabel} transaction for ${renderedUTxOs}, cause:
+                                 ${errorToString(txRes.error)}`
     );
   } else {
-    const signedTx = await txRes.data.sign.withWallet().complete();
-    const txHash = await signedTx.submit();
-    logSuccess(`Route tx hash: ${txHash}`);
+    try {
+      const signedTx = await txRes.data.sign.withWallet().complete();
+      const txHash = await signedTx.submit();
+      const cache = getRoutedUTxOs();
+      inputUTxOs.map(u => cache.push(u));
+      logSuccess(`Route tx hash: ${txHash}`);
+    } catch (e) {
+      logWarning(errorToString(e));
+    }
   }
   // }}}
 };

@@ -23,6 +23,19 @@ import {
   showOutRef,
   showShortOutRef,
 } from "../utils.js";
+import { getRoutedUTxOs } from "../global.js";
+
+const filterAlreadyRoutedUTxOs = (initUTxOs: UTxO[]): UTxO[] => {
+  const cache = getRoutedUTxOs();
+  const filtered = initUTxOs.filter(
+    (u) =>
+      !cache.some(
+        (routed) =>
+          routed.txHash === u.txHash && routed.outputIndex === u.outputIndex
+      )
+  );
+  return filtered;
+};
 
 export function monitor(config: Config) {
   return async () => {
@@ -56,25 +69,26 @@ export function monitor(config: Config) {
           async () => {
             // {{{
             try {
-              const singleUTxOs = await fetchSingleRequestUTxOs(
+              const initSingleUTxOs = await fetchSingleRequestUTxOs(
                 lucid,
                 config.scriptCBOR,
                 network
               );
+              const singleUTxOs = filterAlreadyRoutedUTxOs(initSingleUTxOs);
               if (singleUTxOs.length > 0) {
                 try {
                   await Promise.all(
                     singleUTxOs.map(async (u: UTxO) => {
                       const routeConfig: SingleRouteConfig = {
+                        ...config,
                         scriptCBOR: config.scriptCBOR,
                         requestOutRef: { ...u },
                         routeAddress: config.routeDestination,
-                        simpleRouteConfig: config.simpleRouteConfig,
-                        advancedRouteConfig: config.advancedReclaimConfig,
                       };
                       try {
                         const txRes = await singleRoute(lucid, routeConfig);
                         await handleRouteTxRes(
+                          [u],
                           txRes,
                           "single route",
                           showOutRef({ ...u })
@@ -98,11 +112,12 @@ export function monitor(config: Config) {
           async () => {
             // {{{
             try {
-              const batchUTxOs = await fetchBatchRequestUTxOs(
+              const initBatchUTxOs = await fetchBatchRequestUTxOs(
                 lucid,
                 config.scriptCBOR,
                 network
               );
+              const batchUTxOs = filterAlreadyRoutedUTxOs(initBatchUTxOs);
               if (batchUTxOs.length > 0) {
                 const batchRouteConfig: BatchRouteConfig = {
                   stakingScriptCBOR: config.scriptCBOR,
@@ -117,6 +132,7 @@ export function monitor(config: Config) {
                     showShortOutRef({ ...u })
                   );
                   await handleRouteTxRes(
+                    batchUTxOs,
                     txRes,
                     "batch route",
                     outRefsRendered.join(", ")
