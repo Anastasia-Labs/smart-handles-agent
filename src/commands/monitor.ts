@@ -120,11 +120,10 @@ export function monitor(config: Config) {
               const batchUTxOs = filterAlreadyRoutedUTxOs(initBatchUTxOs);
               if (batchUTxOs.length > 0) {
                 const batchRouteConfig: BatchRouteConfig = {
+                  ...config,
                   stakingScriptCBOR: config.scriptCBOR,
                   requestOutRefs: { ...batchUTxOs },
                   routeAddress: config.routeDestination,
-                  simpleRouteConfig: config.simpleRouteConfig,
-                  advancedRouteConfig: config.advancedRouteConfig,
                 };
                 try {
                   const txRes = await batchRoute(lucid, batchRouteConfig);

@@ -22,13 +22,13 @@ importers:
         version: 12.1.0
     devDependencies:
       '@types/node':
-        specifier: ^20.12.12
+        specifier: ^20.16.5
         version: 20.16.5
       tsup:
-        specifier: ^8.0.2
+        specifier: ^8.2.4
         version: 8.2.4(@swc/core@1.5.7)(typescript@5.5.4)(yaml@2.4.2)
       typescript:
-        specifier: ^5.4.5
+        specifier: ^5.5.4
         version: 5.5.4
 
 packages:
@@ -40,7 +40,7 @@ packages:
     resolution: {integrity: sha512-pZhWWVy7E4zUR4Ic79uXhpMxgX2fEomOlqkM5UnbeBwXvYCZ8sd191sGlmbe6Sx30cqiqbjx/cc3R5JYRxk8yw==}
 
   '@anastasia-labs/smart-handles-offchain@file:anastasia-labs-smart-handles-offchain-0.3.0.tgz':
-    resolution: {integrity: sha512-1kR3HS3rkhw8ABfeQwJ+aPE1kwNX456Pz7QefHq6cpPtLpZeFwZjU4UbuSH9RGrPQiBR1N/QcIpwSl9DOayvYg==, tarball: file:anastasia-labs-smart-handles-offchain-0.3.0.tgz}
+    resolution: {integrity: sha512-J2RPTSEG4xxeBi3dnqiHsT9l9ok0n7XToNLbxPCVKNtyj9M18mMkfoZ2nIbIJTHG8nfWGZRPa04FRE9HENdnzA==, tarball: file:anastasia-labs-smart-handles-offchain-0.3.0.tgz}
     version: 0.3.0
 
   '@commander-js/extra-typings@12.1.0':
