@@ -250,7 +250,8 @@ export const handleRouteRequest = async (config: Config, req: RouteRequest) => {
       const signedTx = await txRes.data.sign.withWallet().complete();
       console.log(chalk.dim("Submitting the transaction..."));
       const txHash = await signedTx.submit();
-      logSuccess(`Request tx hash: ${txHash}`);
+      logSuccess(`Request tx hash:
+${txHash}`);
       process.exit(0);
     } catch (e) {
       logAbort(errorToString(e));
@@ -295,7 +296,8 @@ export const handleRouteTxRes = async (
       const txHash = await signedTx.submit();
       const cache = getRoutedUTxOs();
       inputUTxOs.map(u => cache.push(u));
-      logSuccess(`Route tx hash: ${txHash}`);
+      logSuccess(`Route tx hash:
+${txHash}`);
     } catch (e) {
       logWarning(errorToString(e));
     }
