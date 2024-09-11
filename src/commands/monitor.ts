@@ -16,6 +16,7 @@ import {
   chalk,
   handleRouteTxRes,
   logAbort,
+  logInfo,
   logNoneFound,
   logWarning,
   matchTarget,
@@ -35,6 +36,19 @@ const filterAlreadyRoutedUTxOs = (initUTxOs: UTxO[]): UTxO[] => {
       )
   );
   return filtered;
+};
+
+const renderUTxOs = (utxos: UTxO[]): string => {
+  if (utxos.length < 1) {
+    return "";
+  } else if (utxos.length === 1) {
+    return showOutRef({ ...utxos[0] })
+  } else {
+    const outRefsRendered: string[] = utxos.map((u) =>
+      showShortOutRef({ ...u })
+    );
+    return outRefsRendered.join(", ");
+  }
 };
 
 export function monitor(config: Config) {
@@ -76,6 +90,8 @@ export function monitor(config: Config) {
               );
               const singleUTxOs = filterAlreadyRoutedUTxOs(initSingleUTxOs);
               if (singleUTxOs.length > 0) {
+                logInfo(`Found ${singleUTxOs.length} UTxO(s):
+${renderUTxOs(singleUTxOs)}`);
                 try {
                   await Promise.all(
                     singleUTxOs.map(async (u: UTxO) => {
@@ -88,24 +104,26 @@ export function monitor(config: Config) {
                       try {
                         const txRes = await singleRoute(lucid, routeConfig);
                         await handleRouteTxRes(
+                          lucid,
                           [u],
                           txRes,
                           "single route",
-                          showOutRef({ ...u })
+                          showOutRef({ ...u }),
+                          config.quiet
                         );
                       } catch (e) {
-                        logWarning(errorToString(e));
+                        logWarning(errorToString(e), config.quiet);
                       }
                     })
                   );
                 } catch (e) {
-                  logWarning("Couldn't process route requests");
+                  logWarning("Couldn't process route requests", config.quiet);
                 }
               } else {
                 logNoneFound("single");
               }
             } catch (e) {
-              logWarning(errorToString(e));
+              logWarning(errorToString(e), config.quiet);
             }
             // }}}
           },
@@ -125,25 +143,29 @@ export function monitor(config: Config) {
                   requestOutRefs: { ...batchUTxOs },
                   routeAddress: config.routeDestination,
                 };
+                const renderedOutRefs = renderUTxOs(batchUTxOs);
+                if (batchUTxOs.length > 0) {
+                  logInfo(`Found ${batchUTxOs.length} UTxO(s):
+${renderedOutRefs}`);
+                }
                 try {
                   const txRes = await batchRoute(lucid, batchRouteConfig);
-                  const outRefsRendered: string[] = batchUTxOs.map((u) =>
-                    showShortOutRef({ ...u })
-                  );
                   await handleRouteTxRes(
+                    lucid,
                     batchUTxOs,
                     txRes,
                     "batch route",
-                    outRefsRendered.join(", ")
+                    renderedOutRefs,
+                    config.quiet
                   );
                 } catch (e) {
-                  logWarning(errorToString(e));
+                  logWarning(errorToString(e), config.quiet);
                 }
               } else {
                 logNoneFound("batch");
               }
             } catch (e) {
-              logWarning(errorToString(e));
+              logWarning(errorToString(e), config.quiet);
             }
             // }}}
           }

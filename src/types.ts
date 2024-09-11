@@ -24,6 +24,7 @@ export type RequestInfo = {
 
 export interface Config {
   label?: string;
+  quiet?: true;
   network?: Network;
   pollingInterval?: number;
   scriptCBOR: CBORHex;

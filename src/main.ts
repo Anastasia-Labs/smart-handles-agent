@@ -131,7 +131,11 @@ export const main = (config: Config): Command => {
       `Start monitoring the provided smart handles instance, and perform the routing to
   collect their fees.`
     )
-    .action(monitor(config));
+    .option(
+      "-q, --quiet",
+      "Suppress warning logs."
+    )
+    .action(({quiet}) => monitor({...config, quiet: quiet ?? config.quiet})());
   // ===========================================================================
   
   return program;

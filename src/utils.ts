@@ -87,8 +87,10 @@ export const logSuccess = (msg: string) => {
   logWithTime(chalk.green, "SUCCESS!", msg);
 };
 
-export const logWarning = (msg: string) => {
-  logWithTime(chalk.yellow, "WARNING:", msg);
+export const logWarning = (msg: string, quiet?: true) => {
+  if (!quiet) {
+    logWithTime(chalk.yellow, "WARNING:", msg);
+  }
 };
 
 export const logAbort = (msg: string) => {
@@ -279,27 +281,31 @@ export const handleLovelaceOption = (q: string): bigint => {
 };
 
 export const handleRouteTxRes = async (
+  lucid: LucidEvolution,
   inputUTxOs: UTxO[],
   txRes: Result<TxSignBuilder>,
   txLabel: string,
-  renderedUTxOs: string
+  renderedUTxOs: string,
+  quiet?: true,
 ) => {
   // {{{
   if (txRes.type === "error") {
     logWarning(
       `Failed to build the ${txLabel} transaction for ${renderedUTxOs}, cause:
-                                 ${errorToString(txRes.error)}`
+                                 ${errorToString(txRes.error)}`,
+      quiet
     );
   } else {
     try {
       const signedTx = await txRes.data.sign.withWallet().complete();
       const txHash = await signedTx.submit();
+      await lucid.awaitTx(txHash);
       const cache = getRoutedUTxOs();
       inputUTxOs.map(u => cache.push(u));
       logSuccess(`Route tx hash:
 ${txHash}`);
     } catch (e) {
-      logWarning(errorToString(e));
+      logWarning(errorToString(e), quiet);
     }
   }
   // }}}
