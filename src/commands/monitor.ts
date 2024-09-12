@@ -86,7 +86,6 @@ export function monitor(config: Config) {
               const initSingleUTxOs = await fetchSingleRequestUTxOs(
                 lucid,
                 config.scriptCBOR,
-                network
               );
               const singleUTxOs = filterAlreadyRoutedUTxOs(initSingleUTxOs);
               if (singleUTxOs.length > 0) {
@@ -133,7 +132,6 @@ ${renderUTxOs(singleUTxOs)}`);
               const initBatchUTxOs = await fetchBatchRequestUTxOs(
                 lucid,
                 config.scriptCBOR,
-                network
               );
               const batchUTxOs = filterAlreadyRoutedUTxOs(initBatchUTxOs);
               if (batchUTxOs.length > 0) {
