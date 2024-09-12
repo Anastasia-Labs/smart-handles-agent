@@ -122,7 +122,7 @@ await program
 
 We recommend `tsup`:
 ```sh
-tsub src/index.ts --minify --format esm
+tsup src/index.ts --minify --format esm
 ```
 Note that `src/index.ts` is the path to the executable source you implemented in
 previous step.
