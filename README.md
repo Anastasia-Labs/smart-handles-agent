@@ -23,7 +23,7 @@ export interface Config {
 
 ## Sample Run of [Minswap V1 Instance](https://github.com/Anastasia-Labs/smart-handles-offchain/tree/main/example)
 
-TODO: Insert gif
+![demo.gif](/assets/images/demo.gif)
 
 
 ## Interface
