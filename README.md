@@ -1,7 +1,7 @@
 # CLI Application Generator for Smart Handles
 
-Given a `Config` value, this package's `main` export generates a CLI interface
-for interacting with your instance of [`smart-handles`](https://github.com/Anastasia-Labs/smart-handles).
+Given a `Config` value, this package's `main` generates a CLI interface for
+interacting with your instance of [`smart-handles`](https://github.com/Anastasia-Labs/smart-handles).
 ```ts
 export interface Config {
   label?: string;
@@ -33,7 +33,7 @@ The generated CLI application offers 3 endpoints:
   their fees
 - `submit-simple` for submitting a simple route request (i.e. attaching a datum
   that only carries owner's address)
-- `submit-advanced` for submitting and advanced route request. This
+- `submit-advanced` for submitting an advanced route request. This
   requires `advancedRouteRequestMaker` to be defined in the given `Config`
 
 
@@ -125,7 +125,7 @@ We recommend `tsup`:
 tsub src/index.ts --minify --format esm
 ```
 Note that `src/index.ts` is the path to the executable source you implemented in
-the previous step.
+previous step.
 
 ### 6. Run your CLI
 ```sh
