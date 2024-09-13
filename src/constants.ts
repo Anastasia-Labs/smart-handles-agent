@@ -2,6 +2,12 @@ import * as chalk_ from "chalk";
 
 const chalk = new chalk_.Chalk();
 
+export const BUILDING_TX_MSG = "Building the transaction...";
+export const TX_BUILT_MSG = "Transaction successfully built.";
+export const SIGNING_TX_MSG = "Signing the transaction...";
+export const SUBMITTING_TX_MSG = "Submitting the transaction...";
+export const AWAITING_TX_MSG = "Awaiting on-chain registration...";
+
 export const DEFAULT_ROUTER_CONFIG_NAME = "router.config.ts";
 
 export const ENV_VARS_GUIDE = `

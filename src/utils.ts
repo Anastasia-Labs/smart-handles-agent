@@ -23,6 +23,7 @@ import {
 } from "@anastasia-labs/smart-handles-offchain";
 import { Config, Target } from "./types.js";
 import {getRoutedUTxOs} from "./global.js";
+import {AWAITING_TX_MSG, BUILDING_TX_MSG, SIGNING_TX_MSG, SUBMITTING_TX_MSG, TX_BUILT_MSG} from "./constants.js";
 
 export const chalk = new chalk_.Chalk();
 
@@ -89,16 +90,23 @@ export const logSuccess = (msg: string) => {
 
 export const logWarning = (msg: string, quiet?: true) => {
   if (!quiet) {
-    logWithTime(chalk.yellow, "WARNING:", msg);
+    logWithTime(chalk.yellow, "WARNING", `
+${msg}`);
   }
 };
 
 export const logAbort = (msg: string) => {
-  logWithTime(chalk.red, "ABORT:", msg);
+  logWithTime(chalk.red, "ABORT", `
+${msg}`);
+};
+
+export const logDim = (msg: string) => {
+  logWithTime(chalk.dim, "", msg);
 };
 
 export const logInfo = (msg: string) => {
-  logWithTime(chalk.blue, "INFO:", msg);
+  logWithTime(chalk.blue, "INFO", `
+${msg}`);
 };
 
 export const isHexString = (str: string): boolean => {
@@ -229,7 +237,7 @@ export const handleRouteRequest = async (config: Config, req: RouteRequest) => {
   console.log("Route Address:");
   console.log(chalk.whiteBright(config.routeDestination));
   console.log("");
-  console.log(chalk.dim("Building the transaction..."));
+  console.log(chalk.dim(BUILDING_TX_MSG));
   const txRes =
     target === "Single"
       ? await singleRequest(lucid, {
@@ -246,11 +254,11 @@ export const handleRouteRequest = async (config: Config, req: RouteRequest) => {
     logAbort(errorToString(txRes.error));
     process.exit(1);
   } else {
-    console.log(chalk.dim("Transaction successfully built."));
+    console.log(chalk.dim(TX_BUILT_MSG));
     try {
-      console.log(chalk.dim("Signing the transaction..."));
+      console.log(chalk.dim(SIGNING_TX_MSG));
       const signedTx = await txRes.data.sign.withWallet().complete();
-      console.log(chalk.dim("Submitting the transaction..."));
+      console.log(chalk.dim(SUBMITTING_TX_MSG));
       const txHash = await signedTx.submit();
       logSuccess(`Request tx hash:
 ${txHash}`);
@@ -292,14 +300,17 @@ export const handleRouteTxRes = async (
   if (txRes.type === "error") {
     logWarning(
       `Failed to build the ${txLabel} transaction for ${renderedUTxOs}, cause:
-                                 ${errorToString(txRes.error)}`,
+${errorToString(txRes.error)}`,
       quiet
     );
   } else {
     try {
+      logDim(TX_BUILT_MSG);
       const signedTx = await txRes.data.sign.withWallet().complete();
+      logDim(SUBMITTING_TX_MSG);
       const txHash = await signedTx.submit();
-      await lucid.awaitTx(txHash);
+      // logDim(AWAITING_TX_MSG);
+      // await lucid.awaitTx(txHash);
       const cache = getRoutedUTxOs();
       inputUTxOs.map(u => cache.push(u));
       logSuccess(`Route tx hash:

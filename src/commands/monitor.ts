@@ -16,7 +16,7 @@ import {
   chalk,
   handleRouteTxRes,
   logAbort,
-  logInfo,
+  logDim,
   logNoneFound,
   logWarning,
   matchTarget,
@@ -25,6 +25,27 @@ import {
   showShortOutRef,
 } from "../utils.js";
 import { getRoutedUTxOs } from "../global.js";
+import { BUILDING_TX_MSG } from "../constants.js";
+
+async function setIntervalAsync(
+  callback: () => Promise<void>,
+  interval: number
+): Promise<() => void> {
+  let isRunning = true;
+
+  const run = async () => {
+    while (isRunning) {
+      await callback();
+      await new Promise(resolve => setTimeout(resolve, interval));
+    }
+  };
+
+  run();
+
+  return () => {
+    isRunning = false;
+  };
+}
 
 const filterAlreadyRoutedUTxOs = (initUTxOs: UTxO[]): UTxO[] => {
   const cache = getRoutedUTxOs();
@@ -42,7 +63,7 @@ const renderUTxOs = (utxos: UTxO[]): string => {
   if (utxos.length < 1) {
     return "";
   } else if (utxos.length === 1) {
-    return showOutRef({ ...utxos[0] })
+    return showOutRef({ ...utxos[0] });
   } else {
     const outRefsRendered: string[] = utxos.map((u) =>
       showShortOutRef({ ...u })
@@ -55,7 +76,7 @@ export function monitor(config: Config) {
   return async () => {
     const network: Network = config.network ?? "Mainnet";
     const pollingInterval = config.pollingInterval ?? 10_000;
-    // ------- CONFIG REPORT -----------------------------------------------------
+    // ------- CONFIG REPORT ---------------------------------------------------
     console.log("");
     console.log(
       chalk.bold(
@@ -68,7 +89,7 @@ export function monitor(config: Config) {
     console.log("");
 
     try {
-      // ------- POLLING ---------------------------------------------------------
+      // ------- POLLING -------------------------------------------------------
       const lucid = await setupLucid(network);
       const monitorAddress =
         config.scriptTarget === "Single"
@@ -77,7 +98,7 @@ export function monitor(config: Config) {
       console.log("Querying:");
       console.log(chalk.whiteBright(monitorAddress));
       console.log("");
-      setInterval(async () => {
+      setIntervalAsync(async () => {
         matchTarget(
           config.scriptTarget,
           async () => {
@@ -85,11 +106,11 @@ export function monitor(config: Config) {
             try {
               const initSingleUTxOs = await fetchSingleRequestUTxOs(
                 lucid,
-                config.scriptCBOR,
+                config.scriptCBOR
               );
               const singleUTxOs = filterAlreadyRoutedUTxOs(initSingleUTxOs);
               if (singleUTxOs.length > 0) {
-                logInfo(`Found ${singleUTxOs.length} UTxO(s):
+                logDim(`Found ${singleUTxOs.length} UTxO(s):
 ${renderUTxOs(singleUTxOs)}`);
                 try {
                   await Promise.all(
@@ -101,13 +122,14 @@ ${renderUTxOs(singleUTxOs)}`);
                         routeAddress: config.routeDestination,
                       };
                       try {
+                        logDim(BUILDING_TX_MSG);
                         const txRes = await singleRoute(lucid, routeConfig);
                         await handleRouteTxRes(
                           lucid,
                           [u],
                           txRes,
                           "single route",
-                          showOutRef({ ...u }),
+                          showShortOutRef({ ...u }),
                           config.quiet
                         );
                       } catch (e) {
@@ -131,7 +153,7 @@ ${renderUTxOs(singleUTxOs)}`);
             try {
               const initBatchUTxOs = await fetchBatchRequestUTxOs(
                 lucid,
-                config.scriptCBOR,
+                config.scriptCBOR
               );
               const batchUTxOs = filterAlreadyRoutedUTxOs(initBatchUTxOs);
               if (batchUTxOs.length > 0) {
@@ -143,10 +165,11 @@ ${renderUTxOs(singleUTxOs)}`);
                 };
                 const renderedOutRefs = renderUTxOs(batchUTxOs);
                 if (batchUTxOs.length > 0) {
-                  logInfo(`Found ${batchUTxOs.length} UTxO(s):
+                  logDim(`Found ${batchUTxOs.length} UTxO(s):
 ${renderedOutRefs}`);
                 }
                 try {
+                  logDim(BUILDING_TX_MSG);
                   const txRes = await batchRoute(lucid, batchRouteConfig);
                   await handleRouteTxRes(
                     lucid,
