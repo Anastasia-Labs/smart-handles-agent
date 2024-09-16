@@ -8,6 +8,8 @@ export const SIGNING_TX_MSG = "Signing the transaction...";
 export const SUBMITTING_TX_MSG = "Submitting the transaction...";
 export const AWAITING_TX_MSG = "Awaiting on-chain registration...";
 
+export const MISSING_ADVANCED_RECLAIM_CONFIG_ERROR = "Provided config does not include an `advancedReclaimConfig`.";
+
 export const DEFAULT_ROUTER_CONFIG_NAME = "router.config.ts";
 
 export const ENV_VARS_GUIDE = `

@@ -288,7 +288,7 @@ export const handleLovelaceOption = (q: string): bigint => {
   // }}}
 };
 
-export const handleRouteTxRes = async (
+export const handleTxRes = async (
   lucid: LucidEvolution,
   inputUTxOs: UTxO[],
   txRes: Result<TxSignBuilder>,
@@ -313,7 +313,7 @@ ${errorToString(txRes.error)}`,
       // await lucid.awaitTx(txHash);
       const cache = getRoutedUTxOs();
       inputUTxOs.map(u => cache.push(u));
-      logSuccess(`Route tx hash:
+      logSuccess(`Tx hash:
 ${txHash}`);
     } catch (e) {
       logWarning(errorToString(e), quiet);

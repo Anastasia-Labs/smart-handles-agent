@@ -1,20 +1,26 @@
 import {
+  BatchReclaimConfig,
   BatchRouteConfig,
   Network,
+  Result,
+  SingleReclaimConfig,
   SingleRouteConfig,
+  TxSignBuilder,
   UTxO,
+  batchReclaim,
   batchRoute,
   errorToString,
   fetchBatchRequestUTxOs,
   fetchSingleRequestUTxOs,
   getBatchVAs,
   getSingleValidatorVA,
+  singleReclaim,
   singleRoute,
 } from "@anastasia-labs/smart-handles-offchain";
 import { Config } from "../types.js";
 import {
   chalk,
-  handleRouteTxRes,
+  handleTxRes,
   logAbort,
   logDim,
   logNoneFound,
@@ -25,7 +31,10 @@ import {
   showShortOutRef,
 } from "../utils.js";
 import { getRoutedUTxOs } from "../global.js";
-import { BUILDING_TX_MSG } from "../constants.js";
+import {
+  BUILDING_TX_MSG,
+  MISSING_ADVANCED_RECLAIM_CONFIG_ERROR,
+} from "../constants.js";
 
 async function setIntervalAsync(
   callback: () => Promise<void>,
@@ -36,7 +45,7 @@ async function setIntervalAsync(
   const run = async () => {
     while (isRunning) {
       await callback();
-      await new Promise(resolve => setTimeout(resolve, interval));
+      await new Promise((resolve) => setTimeout(resolve, interval));
     }
   };
 
@@ -72,7 +81,7 @@ const renderUTxOs = (utxos: UTxO[]): string => {
   }
 };
 
-export function monitor(config: Config) {
+export function monitor(config: Config & { reclaim?: true }) {
   return async () => {
     const network: Network = config.network ?? "Mainnet";
     const pollingInterval = config.pollingInterval ?? 10_000;
@@ -82,7 +91,9 @@ export function monitor(config: Config) {
       chalk.bold(
         `Monitoring ${config.label} smart handles script for ${chalk.blue(
           `${config.scriptTarget}`.toUpperCase()
-        )} requests on ${chalk.blue(`${config.network}`.toUpperCase())}`
+        )} requests on ${chalk.blue(`${config.network}`.toUpperCase())}${
+          config.reclaim ? ` to ${chalk.blue("RECLAIM")}` : ""
+        }`
       )
     );
     console.log(chalk.dim(`Polling every ${pollingInterval}ms`));
@@ -115,25 +126,53 @@ ${renderUTxOs(singleUTxOs)}`);
                 try {
                   await Promise.all(
                     singleUTxOs.map(async (u: UTxO) => {
-                      const routeConfig: SingleRouteConfig = {
-                        ...config,
-                        scriptCBOR: config.scriptCBOR,
-                        requestOutRef: { ...u },
-                        routeAddress: config.routeDestination,
-                      };
-                      try {
-                        logDim(BUILDING_TX_MSG);
-                        const txRes = await singleRoute(lucid, routeConfig);
-                        await handleRouteTxRes(
+                      const handleTxHelper = (
+                        txRes: Result<TxSignBuilder>,
+                        label: string
+                      ) =>
+                        handleTxRes(
                           lucid,
                           [u],
                           txRes,
-                          "single route",
+                          label,
                           showShortOutRef({ ...u }),
                           config.quiet
                         );
-                      } catch (e) {
-                        logWarning(errorToString(e), config.quiet);
+                      if (config.reclaim) {
+                        if (config.advancedReclaimConfig) {
+                          const reclaimConfig: SingleReclaimConfig = {
+                            ...config,
+                            scriptCBOR: config.scriptCBOR,
+                            requestOutRef: { ...u },
+                          };
+                          try {
+                            logDim(BUILDING_TX_MSG);
+                            const txRes = await singleReclaim(
+                              lucid,
+                              reclaimConfig
+                            );
+                            await handleTxHelper(txRes, "single reclaim");
+                          } catch (e) {
+                            logWarning(errorToString(e), config.quiet);
+                          }
+                        } else {
+                          logAbort(MISSING_ADVANCED_RECLAIM_CONFIG_ERROR);
+                          process.exit(1);
+                        }
+                      } else {
+                        const routeConfig: SingleRouteConfig = {
+                          ...config,
+                          scriptCBOR: config.scriptCBOR,
+                          requestOutRef: { ...u },
+                          routeAddress: config.routeDestination,
+                        };
+                        try {
+                          logDim(BUILDING_TX_MSG);
+                          const txRes = await singleRoute(lucid, routeConfig);
+                          await handleTxHelper(txRes, "single route");
+                        } catch (e) {
+                          logWarning(errorToString(e), config.quiet);
+                        }
                       }
                     })
                   );
@@ -157,30 +196,55 @@ ${renderUTxOs(singleUTxOs)}`);
               );
               const batchUTxOs = filterAlreadyRoutedUTxOs(initBatchUTxOs);
               if (batchUTxOs.length > 0) {
-                const batchRouteConfig: BatchRouteConfig = {
-                  ...config,
-                  stakingScriptCBOR: config.scriptCBOR,
-                  requestOutRefs: { ...batchUTxOs },
-                  routeAddress: config.routeDestination,
-                };
                 const renderedOutRefs = renderUTxOs(batchUTxOs);
-                if (batchUTxOs.length > 0) {
-                  logDim(`Found ${batchUTxOs.length} UTxO(s):
+                logDim(`Found ${batchUTxOs.length} UTxO(s):
 ${renderedOutRefs}`);
-                }
-                try {
-                  logDim(BUILDING_TX_MSG);
-                  const txRes = await batchRoute(lucid, batchRouteConfig);
-                  await handleRouteTxRes(
+                logDim(BUILDING_TX_MSG);
+                const handleTxHelper = (
+                  txRes: Result<TxSignBuilder>,
+                  label: string
+                ) =>
+                  handleTxRes(
                     lucid,
                     batchUTxOs,
                     txRes,
-                    "batch route",
+                    label,
                     renderedOutRefs,
                     config.quiet
                   );
-                } catch (e) {
-                  logWarning(errorToString(e), config.quiet);
+                if (config.reclaim) {
+                  if (config.advancedReclaimConfig) {
+                    const batchReclaimConfig: BatchReclaimConfig = {
+                      ...config,
+                      stakingScriptCBOR: config.scriptCBOR,
+                      requestOutRefs: { ...batchUTxOs },
+                    };
+                    try {
+                      const txRes = await batchReclaim(
+                        lucid,
+                        batchReclaimConfig
+                      );
+                      await handleTxHelper(txRes, "batch reclaim");
+                    } catch (e) {
+                      logWarning(errorToString(e), config.quiet);
+                    }
+                  } else {
+                    logAbort(MISSING_ADVANCED_RECLAIM_CONFIG_ERROR);
+                    process.exit(1);
+                  }
+                } else {
+                  const batchRouteConfig: BatchRouteConfig = {
+                    ...config,
+                    stakingScriptCBOR: config.scriptCBOR,
+                    requestOutRefs: { ...batchUTxOs },
+                    routeAddress: config.routeDestination,
+                  };
+                  try {
+                    const txRes = await batchRoute(lucid, batchRouteConfig);
+                    await handleTxHelper(txRes, "batch route");
+                  } catch (e) {
+                    logWarning(errorToString(e), config.quiet);
+                  }
                 }
               } else {
                 logNoneFound("batch");

@@ -58,7 +58,7 @@ export const main = (config: Config): Command => {
   ${"Provider for making CLI application for submitting and routing requests to a smart handles script on Cardano"}
   ${ENV_VARS_GUIDE}`
   );
-  
+
   // === SUBMIT-SIMPLE =========================================================
   program
     .command("submit-simple")
@@ -79,7 +79,7 @@ export const main = (config: Config): Command => {
     )
     .action(submitSimple(config));
   // ===========================================================================
-  
+
   // === SUBMIT-ADVANCED =======================================================
   program
     .command("submit-advanced")
@@ -122,7 +122,7 @@ export const main = (config: Config): Command => {
     )
     .action(submitAdvanced(config));
   // ===========================================================================
-  
+
   // === MONITOR ===============================================================
   program
     .command("monitor")
@@ -131,13 +131,13 @@ export const main = (config: Config): Command => {
       `Start monitoring the provided smart handles instance, and perform the routing to
   collect their fees.`
     )
-    .option(
-      "-q, --quiet",
-      "Suppress warning logs."
-    )
-    .action(({quiet}) => monitor({...config, quiet: quiet ?? config.quiet})());
+    .option("-q, --quiet", "Suppress warning logs.")
+    .option("--reclaim", "Only perform advanced reclaims.")
+    .action(({ quiet, reclaim }) =>
+      monitor({ ...config, quiet: quiet ?? config.quiet, reclaim })()
+    );
   // ===========================================================================
-  
+
   return program;
   // return await program.parseAsync(process.argv);
 };

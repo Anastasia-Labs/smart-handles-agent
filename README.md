@@ -1,3 +1,20 @@
+# Talbe of Contents
+
+<!-- vim-markdown-toc GFM -->
+
+* [CLI Application Generator for Smart Handles](#cli-application-generator-for-smart-handles)
+    * [Sample Run of Minswap V1 Instance](#sample-run-of-minswap-v1-instance)
+    * [Interface](#interface)
+    * [How to Use](#how-to-use)
+        * [1. Install this package along with `smart-handles-offchain`:](#1-install-this-package-along-with-smart-handles-offchain)
+        * [2. Configure your `package.json` and `tsconfig.js`](#2-configure-your-packagejson-and-tsconfigjs)
+        * [3. Define your `Config`](#3-define-your-config)
+        * [4. Implement your executable source](#4-implement-your-executable-source)
+        * [5. Build your application](#5-build-your-application)
+        * [6. Run your CLI](#6-run-your-cli)
+
+<!-- vim-markdown-toc -->
+
 # CLI Application Generator for Smart Handles
 
 Given a `Config` value, this package's `main` generates a CLI interface for
@@ -128,6 +145,14 @@ Note that `src/index.ts` is the path to the executable source you implemented in
 previous step.
 
 ### 6. Run your CLI
+
+Use the `-h` or `--help` flag to learn more about each of the 3 endpoints
+(`monitor`, `submit-simple`, and `submit-advanced`).
+
 ```sh
 node dist/index.js --help
+
+# or e.g.
+
+node dist/index.js monitor --help
 ```
