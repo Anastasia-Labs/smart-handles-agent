@@ -1,4 +1,4 @@
-# Talbe of Contents
+# Table of Contents
 
 <!-- vim-markdown-toc GFM -->
 
