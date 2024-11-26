@@ -22,8 +22,13 @@ import {
   UTxO,
 } from "@anastasia-labs/smart-handles-offchain";
 import { Config, Target } from "./types.js";
-import {getRoutedUTxOs} from "./global.js";
-import {AWAITING_TX_MSG, BUILDING_TX_MSG, SIGNING_TX_MSG, SUBMITTING_TX_MSG, TX_BUILT_MSG} from "./constants.js";
+import { getRoutedUTxOs } from "./global.js";
+import {
+  BUILDING_TX_MSG,
+  SIGNING_TX_MSG,
+  SUBMITTING_TX_MSG,
+  TX_BUILT_MSG,
+} from "./constants.js";
 
 export const chalk = new chalk_.Chalk();
 
@@ -90,14 +95,22 @@ export const logSuccess = (msg: string) => {
 
 export const logWarning = (msg: string, quiet?: true) => {
   if (!quiet) {
-    logWithTime(chalk.yellow, "WARNING", `
-${msg}`);
+    logWithTime(
+      chalk.yellow,
+      "WARNING",
+      `
+${msg}`
+    );
   }
 };
 
 export const logAbort = (msg: string) => {
-  logWithTime(chalk.red, "ABORT", `
-${msg}`);
+  logWithTime(
+    chalk.red,
+    "ABORT",
+    `
+${msg}`
+  );
 };
 
 export const logDim = (msg: string) => {
@@ -105,8 +118,12 @@ export const logDim = (msg: string) => {
 };
 
 export const logInfo = (msg: string) => {
-  logWithTime(chalk.blue, "INFO", `
-${msg}`);
+  logWithTime(
+    chalk.blue,
+    "INFO",
+    `
+${msg}`
+  );
 };
 
 export const isHexString = (str: string): boolean => {
@@ -171,7 +188,7 @@ export const handleAddressOption = (initAddr: string): AddressDetails => {
   // {{{
   try {
     return getAddressDetails(initAddr);
-  } catch(e) {
+  } catch (e) {
     logAbort(errorToString(e));
     process.exit(1);
   }
@@ -241,11 +258,13 @@ export const handleRouteRequest = async (config: Config, req: RouteRequest) => {
   const txRes =
     target === "Single"
       ? await singleRequest(lucid, {
+          network,
           scriptCBOR: config.scriptCBOR,
           routeRequest: req,
           additionalRequiredLovelaces: BigInt(0),
         })
       : await batchRequest(lucid, {
+          network,
           stakingScriptCBOR: config.scriptCBOR,
           routeRequests: [req],
           additionalRequiredLovelaces: BigInt(0),
@@ -294,7 +313,7 @@ export const handleTxRes = async (
   txRes: Result<TxSignBuilder>,
   txLabel: string,
   renderedUTxOs: string,
-  quiet?: true,
+  quiet?: true
 ) => {
   // {{{
   if (txRes.type === "error") {
@@ -312,7 +331,7 @@ ${errorToString(txRes.error)}`,
       // logDim(AWAITING_TX_MSG);
       // await lucid.awaitTx(txHash);
       const cache = getRoutedUTxOs();
-      inputUTxOs.map(u => cache.push(u));
+      inputUTxOs.map((u) => cache.push(u));
       logSuccess(`Tx hash:
 ${txHash}`);
     } catch (e) {
