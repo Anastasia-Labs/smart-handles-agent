@@ -117,6 +117,7 @@ export function monitor(config: Config & { reclaim?: true }) {
             try {
               const initSingleUTxOs = await fetchSingleRequestUTxOs(
                 lucid,
+                network,
                 config.scriptCBOR
               );
               const singleUTxOs = filterAlreadyRoutedUTxOs(initSingleUTxOs);
@@ -142,6 +143,7 @@ ${renderUTxOs(singleUTxOs)}`);
                         if (config.advancedReclaimConfig) {
                           const reclaimConfig: SingleReclaimConfig = {
                             ...config,
+                            network,
                             scriptCBOR: config.scriptCBOR,
                             requestOutRef: { ...u },
                           };
@@ -162,6 +164,7 @@ ${renderUTxOs(singleUTxOs)}`);
                       } else {
                         const routeConfig: SingleRouteConfig = {
                           ...config,
+                          network,
                           scriptCBOR: config.scriptCBOR,
                           requestOutRef: { ...u },
                           routeAddress: config.routeDestination,
@@ -192,6 +195,7 @@ ${renderUTxOs(singleUTxOs)}`);
             try {
               const initBatchUTxOs = await fetchBatchRequestUTxOs(
                 lucid,
+                network,
                 config.scriptCBOR
               );
               const batchUTxOs = filterAlreadyRoutedUTxOs(initBatchUTxOs);
@@ -216,6 +220,7 @@ ${renderedOutRefs}`);
                   if (config.advancedReclaimConfig) {
                     const batchReclaimConfig: BatchReclaimConfig = {
                       ...config,
+                      network,
                       stakingScriptCBOR: config.scriptCBOR,
                       requestOutRefs: { ...batchUTxOs },
                     };
@@ -235,6 +240,7 @@ ${renderedOutRefs}`);
                 } else {
                   const batchRouteConfig: BatchRouteConfig = {
                     ...config,
+                    network,
                     stakingScriptCBOR: config.scriptCBOR,
                     requestOutRefs: { ...batchUTxOs },
                     routeAddress: config.routeDestination,
