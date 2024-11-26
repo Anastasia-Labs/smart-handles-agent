@@ -1,6 +1,6 @@
 {
   "name": "@anastasia-labs/smart-handles-agent",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Provider for making CLI application for submitting and routing requests to a smart handles script on Cardano",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
