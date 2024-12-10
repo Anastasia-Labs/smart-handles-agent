@@ -101,7 +101,7 @@ export function monitor(config: Config & { reclaim?: true }) {
 
     try {
       // ------- POLLING -------------------------------------------------------
-      const lucid = await setupLucid(network);
+      const lucid = await setupLucid(network, config.provider);
       const monitorAddress =
         config.scriptTarget === "Single"
           ? getSingleValidatorVA(config.scriptCBOR, network).address

@@ -13,6 +13,8 @@ import {
 
 export type Target = "Single" | "Batch";
 
+export type ProviderName = "Blockfrost" | "Koios" | "Kupmios" | "Maestro";
+
 export type RequestInfo = {
   lovelace: bigint;
   asset: Assets;
@@ -26,6 +28,7 @@ export interface Config {
   label?: string;
   quiet?: true;
   network?: Network;
+  provider: ProviderName;
   pollingInterval?: number;
   scriptCBOR: CBORHex;
   scriptTarget: Target;
