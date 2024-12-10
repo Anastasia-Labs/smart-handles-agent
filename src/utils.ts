@@ -20,8 +20,12 @@ import {
   getAddressDetails,
   AddressDetails,
   UTxO,
+  Koios,
+  Kupmios,
+  Provider,
+  Maestro,
 } from "@anastasia-labs/smart-handles-offchain";
-import { Config, Target } from "./types.js";
+import { Config, ProviderName, Target } from "./types.js";
 import { getRoutedUTxOs } from "./global.js";
 import {
   BUILDING_TX_MSG,
@@ -135,26 +139,52 @@ export const logNoneFound = (variant: string) => {
   logWithTime(chalk.dim, "", `No ${variant} requests found`);
 };
 
-export const setupLucid = async (network: Network): Promise<LucidEvolution> => {
+export const setupLucid = async (
+  network: Network,
+  providerName: ProviderName
+): Promise<LucidEvolution> => {
   // {{{
-  const blockfrostKey = process.env.BLOCKFROST_KEY;
   const seedPhrase = process.env.SEED_PHRASE;
-  if (!blockfrostKey) {
-    logAbort("No Blockfrost API key was found (BLOCKFROST_KEY)");
-    process.exit(1);
-  }
   if (!seedPhrase) {
     logAbort("No wallet seed phrase found (SEED_PHRASE)");
     process.exit(1);
   }
-  try {
-    const lucid = await Lucid(
-      new Blockfrost(
-        `https://cardano-${`${network}`.toLowerCase()}.blockfrost.io/api/v0`,
-        blockfrostKey
-      ),
-      network
+  const networkStr = `${network}`.toLowerCase();
+  let provider: Provider;
+  if (providerName === "Blockfrost" || providerName === "Maestro") {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      logAbort("No API key was found (API_KEY)");
+      process.exit(1);
+    }
+    if (providerName === "Blockfrost") {
+      provider = new Blockfrost(
+        `https://cardano-${networkStr}.blockfrost.io/api/v0`,
+        apiKey
+      );
+    } else {
+      provider = new Maestro({
+        network: network === "Custom" ? "Mainnet" : network,
+        apiKey,
+      });
+    }
+  } else if (providerName === "Koios") {
+    provider = new Koios(
+      `https://${network === "Mainnet" ? "api" : networkStr}.koios.rest/api/v1`
     );
+  } else {
+    const kupoURL = process.env.KUPO_URL;
+    const ogmiosURL = process.env.OGMIOS_URL;
+    if (!kupoURL || !ogmiosURL) {
+      logAbort(
+        "Make sure to set both KUPO_URL and OGMIOS_URL environment variables"
+      );
+      process.exit(1);
+    }
+    provider = new Kupmios(kupoURL, ogmiosURL);
+  }
+  try {
+    const lucid = await Lucid(provider, network);
     lucid.selectWallet.fromSeed(seedPhrase);
     return lucid;
   } catch (e) {
@@ -230,7 +260,7 @@ export const handleFeeOption = (q: string): bigint => {
 export const handleRouteRequest = async (config: Config, req: RouteRequest) => {
   // {{{
   const network: Network = config.network ?? "Mainnet";
-  const lucid = await setupLucid(network);
+  const lucid = await setupLucid(network, config.provider);
   const target: Target = config.scriptTarget;
   // ------- CONFIG REPORT -----------------------------------------------------
   console.log("");

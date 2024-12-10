@@ -13,10 +13,18 @@ export const MISSING_ADVANCED_RECLAIM_CONFIG_ERROR = "Provided config does not i
 export const DEFAULT_ROUTER_CONFIG_NAME = "router.config.ts";
 
 export const ENV_VARS_GUIDE = `
-Make sure you first have set these 2 environment variables:
+Make sure you first have set the environment variable for your seed phrase:
 
-\u0009${chalk.bold("BLOCKFROST_KEY")}\u0009 Your Blockfrost API key
-\u0009${chalk.bold("SEED_PHRASE")}   \u0009 Your wallet's seed phrase
+\u0009${chalk.bold("SEED_PHRASE")}\u0009 Your wallet's seed phrase
+
+Depending on which provider you'll be using, other environment variables may also be needed:
+
+Blockfrost or Maestro:
+\u0009${chalk.bold("API_KEY")}    \u0009 Your provider's API key
+
+Kupmios:
+\u0009${chalk.bold("KUPO_URL")}   \u0009 URL of your Kupo instance
+\u0009${chalk.bold("OGMIOS_URL")} \u0009 URL of your Ogmios instance
 `;
 
 export const EXTRA_SUBMIT_CONFIG_OPTION_DESCRIPTION =
